@@ -1,0 +1,36 @@
+{
+  "name": "hrmis",
+  "version": "1.0.0",
+  "description": "ZekiExperts HRMIS app to handle stuff",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zekiexperts/HRMIS-node.git"
+  },
+  "author": "Zeki Expert Solutions",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zekiexperts/HRMIS-node/issues"
+  },
+  "homepage": "https://github.com/zekiexperts/HRMIS-node#readme",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "fs": "^0.0.1-security",
+    "https": "^1.0.0",
+    "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "sequelize": "^6.25.5",
+    "tedious": "^15.1.1"
+  },
+  "devDependencies": {
+    "dotenv": "^16.0.3",
+    "nodemon": "^2.0.20"
+  }
+}
