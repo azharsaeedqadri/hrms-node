@@ -28,6 +28,8 @@ module.exports = (sequelize, DataTypes) => {
       name: DataTypes.STRING,
       description: DataTypes.TEXT,
       deduction_type: DataTypes.INTEGER,
+      amount: DataTypes.FLOAT,
+      percentage: DataTypes.FLOAT,
       is_fixed: DataTypes.BOOLEAN,
       status: DataTypes.INTEGER,
       company_id: DataTypes.INTEGER,
