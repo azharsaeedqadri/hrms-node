@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "HRMIS_DB_User",
+    "password": "Ta3n07u$6",
+    "database": "HRMIS_DB",
+    "host": "95.216.202.81",
+    "dialect": "mssql"
+  },
+  "test": {
+    "username": "root",
+    "password": null,
+    "database": "database_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "production": {
+    "username": "HRMIS_DB_User",
+    "password": "Ta3n07u$6",
+    "database": "HRMIS_DB",
+    "host": "95.216.202.81",
+    "dialect": "mssql"
+  }
+}
