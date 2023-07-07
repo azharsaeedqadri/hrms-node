@@ -243,8 +243,19 @@ async function getEmployeeByID(req, res) {
       })
     );
 
+    const createdEmployeeAllowances = await db.sequelize.query(
+      GET_CREATED_EMPLOYEE_ALLOWANCES,
+      {
+        type: QueryTypes.SELECT,
+        replacements: {
+          employee_id: employeeID,
+        },
+      }
+    );
+
     const respData = {
       ...employee[0],
+      allowances: createdEmployeeAllowances,
       finalizedLeaves: employeeFinalizedLeaveRequests || {},
       statusLogs: statusLogsData || {},
     };
