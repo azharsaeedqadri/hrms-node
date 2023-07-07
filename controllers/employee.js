@@ -3,7 +3,7 @@ const {
   EmployeeLeavesRecord,
   EmployeeInformationAudit,
   HrUser,
-  AccountHead,
+  EmployeeAllowance,
 } = require("../models");
 const db = require("../models");
 const { QueryTypes, Op } = require("sequelize");
@@ -12,6 +12,7 @@ const {
   GET_ALL_EMPLOYEES_QUERY,
   GET_EMPLOYEE_BY_ID,
   FINALIZED_LEAVE_RECORDS_BY_EMPLOYEE_ID_QUERY,
+  GET_CREATED_EMPLOYEE_ALLOWANCES,
 } = require("../utils/constants");
 const {
   getResponse,
@@ -67,10 +68,7 @@ async function addNewEmployee(req, res) {
       resume,
       createdBy,
       updatedBy,
-      basic_pay,
-      house_rent,
-      medical_allowance,
-      utility_allowance,
+      allowances,
     } = req.body;
 
     const isAlreadyPresent = await EmployeeInformation.findOne({
@@ -137,23 +135,34 @@ async function addNewEmployee(req, res) {
       where: {
         cnic_number,
       },
+      include: EmployeeAllowance,
     });
 
-    const { employee_id } = addedUser;
+    const employeeAllowances = [];
 
-    await AccountHead.create({
-      basic_pay,
-      house_rent,
-      medical_allowance,
-      utility_allowance,
-      employee_id,
-    });
+    for (const allowance of allowances) {
+      employeeAllowances.push({
+        employee_id: parseInt(addedUser.employee_id),
+        allowance_id: allowance.allowance_id,
+        percentage: allowance.percentage,
+      });
+    }
 
-    const account_info = await AccountHead.findOne({ where: { employee_id } });
+    await EmployeeAllowance.bulkCreate(employeeAllowances);
+
+    const createdEmployeeAllowances = await db.sequelize.query(
+      GET_CREATED_EMPLOYEE_ALLOWANCES,
+      {
+        type: QueryTypes.SELECT,
+        replacements: {
+          employee_id: addedUser.employee_id,
+        },
+      }
+    );
 
     const responseData = {
       addedUser,
-      account_info,
+      allowances: createdEmployeeAllowances,
     };
 
     const resp = getResponse(responseData, 201, "Employee Added Successfully.");
@@ -161,6 +170,7 @@ async function addNewEmployee(req, res) {
     res.status(201).send(resp);
   } catch (err) {
     const resp = getResponse(null, 400, err);
+    console.error(err);
     res.send(resp);
   }
 }
@@ -252,6 +262,7 @@ async function editEmployeeInformation(req, res) {
   try {
     const employeeID = parseInt(req.params.id);
     const bodyValues = req.body;
+    const { allowances } = bodyValues;
     const token = req.header("authorization").split("Bearer ");
 
     const updatedBy = getUserIDByBearerToken(token[1]);
@@ -281,6 +292,46 @@ async function editEmployeeInformation(req, res) {
       },
     });
 
+    console.log("=====================================");
+    console.log("Deleting existing employee allowances");
+    console.log("=====================================");
+
+    await EmployeeAllowance.destroy({ where: { employee_id: employeeID } });
+
+    console.log("=====================================");
+    console.log("Deleted existing employee allowances");
+    console.log("=====================================");
+
+    const employeeAllowances = [];
+
+    for (const allowance of allowances) {
+      employeeAllowances.push({
+        employee_id: employeeID,
+        allowance_id: allowance.allowance_id,
+        percentage: allowance.percentage,
+      });
+    }
+
+    console.log("=====================================");
+    console.log("Creating new employee allowances in edit endpoint");
+    console.log("=====================================");
+
+    await EmployeeAllowance.bulkCreate(employeeAllowances);
+
+    console.log("=====================================");
+    console.log("Created new employee allowances in edit endpoint");
+    console.log("=====================================");
+
+    const createdEmployeeAllowances = await db.sequelize.query(
+      GET_CREATED_EMPLOYEE_ALLOWANCES,
+      {
+        type: QueryTypes.SELECT,
+        replacements: {
+          employee_id: employeeID,
+        },
+      }
+    );
+
     const updatedEmployee = await db.sequelize.query(GET_EMPLOYEE_BY_ID, {
       type: QueryTypes.SELECT,
       replacements: {
@@ -288,11 +339,17 @@ async function editEmployeeInformation(req, res) {
       },
     });
 
-    const resp = getResponse(updatedEmployee, 200, "user updated successfully");
+    const responseData = {
+      updatedEmployee,
+      allowances: createdEmployeeAllowances,
+    };
+
+    const resp = getResponse(responseData, 200, "user updated successfully");
 
     res.send(resp);
   } catch (err) {
     const resp = getResponse(null, 400, "Something went wrong");
+    console.error(err);
     res.send(resp);
   }
 }

@@ -280,6 +280,16 @@ FROM [teams]
 LEFT JOIN departments ON teams.department_id=departments.id
 WHERE [teams].[is_deleted] = 0`;
 
+const GET_CREATED_EMPLOYEE_ALLOWANCES = `select employee_allowances.allowance_id,
+allowances.[name],
+allowances.[description],
+allowance_and_deduction_types.[name] as [type],
+employee_allowances.[percentage]
+from employee_allowances
+left join allowances ON allowances.allowance_id = employee_allowances.allowance_id
+left join allowance_and_deduction_types ON allowance_and_deduction_types.id = allowances.allowance_type
+where employee_id = :employee_id`;
+
 module.exports = {
   SUPER_ADMIN,
   HR,
@@ -293,4 +303,5 @@ module.exports = {
   LEAVE_REASONS_BY_LEAVE_ID_QUERY,
   FINALIZED_LEAVE_RECORDS_BY_EMPLOYEE_ID_QUERY,
   GET_TEAMS_QUERY,
+  GET_CREATED_EMPLOYEE_ALLOWANCES,
 };
