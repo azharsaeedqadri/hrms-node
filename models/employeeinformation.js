@@ -52,6 +52,7 @@ module.exports = (sequelize, DataTypes) => {
       company_id: DataTypes.INTEGER,
       current_salary: DataTypes.INTEGER,
       gross_salary: DataTypes.INTEGER,
+      hourly_rate: DataTypes.FLOAT,
       basic_salary: DataTypes.INTEGER,
       currency_type: DataTypes.INTEGER,
       project_manager: DataTypes.BIGINT,

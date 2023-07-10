@@ -80,6 +80,11 @@ async function addNewEmployee(req, res) {
       return res.send(resp);
     }
 
+    const annualSalary = gross_salary * 12;
+    const weeklySalary = annualSalary / 52;
+    const dailySalary = weeklySalary / 5;
+    const hourlyRate = dailySalary / 8;
+
     await EmployeeInformation.create({
       salutation_id,
       employee_code,
@@ -108,6 +113,7 @@ async function addNewEmployee(req, res) {
       salary_type_id,
       current_salary,
       gross_salary,
+      hourly_rate: hourlyRate,
       company_id,
       basic_salary,
       currency_type,

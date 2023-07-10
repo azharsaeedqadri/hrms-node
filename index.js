@@ -16,12 +16,13 @@ const deductionRouter = require("./routers/deduction");
 const companyRouter = require("./routers/company");
 const epaRouter = require("./routers/employeePayAllowance");
 const epdRouter = require("./routers/employeePayDeduction");
+const taxSlabsRouter = require("./routers/taxSlab");
 
 const app = express();
 var corsOptions = {
-     origin: "*",
-     methods: ["GET", "POST", "PUT", "DELETE"],
-     allowedHeaders: ["Content-Type", "Authorization"],
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 app.use(cors(corsOptions));
@@ -33,8 +34,8 @@ const key = fs.readFileSync("./private.key");
 const cert = fs.readFileSync("./certificate.crt");
 
 const creds = {
-     key,
-     cert,
+  key,
+  cert,
 };
 
 // app.get('/.well-known/pki-validation/A3470B7162E2954CAE3D59BE33AAB854.txt',(req,res)=>{
@@ -53,13 +54,14 @@ app.use("/api/deduction", deductionRouter);
 app.use("/api/companies", companyRouter);
 app.use("/api/epa", epaRouter);
 app.use("/api/epd", epdRouter);
+app.use("/api/tax", taxSlabsRouter);
 
 app.get("/", (req, res) => {
-     return res.send("Server is running...");
+  return res.send("Server is running...");
 });
 
 app.listen(PORT, () => {
-     console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 
 const httpsServer = https.createServer(creds, app);
