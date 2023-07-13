@@ -1,23 +1,17 @@
 "use strict";
 const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
-  class EmployeeAllowance extends Model {
+  class EmployeeDeduction extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      models.EmployeeAllowance.hasMany(models.EmployeeInformation, {
-        foreignKey: "employee_id",
-      });
-      models.EmployeeInformation.belongsTo(models.EmployeeAllowance, {
-        foreignKey: "employee_id",
-      });
       // define association here
     }
   }
-  EmployeeAllowance.init(
+  EmployeeDeduction.init(
     {
       id: {
         type: DataTypes.BIGINT,
@@ -25,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
         autoIncrement: true,
       },
-      allowance_id: {
+      deduction_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
@@ -38,9 +32,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: "EmployeeAllowance",
-      tableName: "employee_allowances",
+      modelName: "EmployeeDeduction",
+      tableName: "employee_deductions",
     }
   );
-  return EmployeeAllowance;
+  return EmployeeDeduction;
 };

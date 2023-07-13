@@ -17,6 +17,7 @@ const companyRouter = require("./routers/company");
 const epaRouter = require("./routers/employeePayAllowance");
 const epdRouter = require("./routers/employeePayDeduction");
 const taxSlabsRouter = require("./routers/taxSlab");
+const calcAllowanceAndDeductionRouter = require("./routers/calcAllowanceAndDeduction");
 
 const app = express();
 var corsOptions = {
@@ -55,6 +56,7 @@ app.use("/api/companies", companyRouter);
 app.use("/api/epa", epaRouter);
 app.use("/api/epd", epdRouter);
 app.use("/api/tax", taxSlabsRouter);
+app.use("/api/calculate", calcAllowanceAndDeductionRouter);
 
 app.get("/", (req, res) => {
   return res.send("Server is running...");
