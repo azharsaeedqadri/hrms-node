@@ -14,7 +14,9 @@ async function addTaxSlab(req, res) {
 
     if (
       tax_slab_name.trim() === "" ||
-      !minimum_income ||
+      minimum_income === "" ||
+      minimum_income === null ||
+      minimum_income === undefined ||
       !maximum_income ||
       !percentage
     ) {
