@@ -18,7 +18,9 @@ async function addTaxSlab(req, res) {
       minimum_income === null ||
       minimum_income === undefined ||
       !maximum_income ||
-      !percentage
+      percentage === "" ||
+      percentage === null ||
+      percentage === undefined
     ) {
       const resp = getResponse(
         null,
