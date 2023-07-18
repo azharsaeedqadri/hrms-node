@@ -36,3 +36,5 @@ async function addReimbursement(req, res) {
     res.send(resp);
   }
 }
+
+module.exports = { addReimbursement };
