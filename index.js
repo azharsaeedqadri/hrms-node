@@ -18,6 +18,7 @@ const epaRouter = require("./routers/employeePayAllowance");
 const epdRouter = require("./routers/employeePayDeduction");
 const taxSlabsRouter = require("./routers/taxSlab");
 const calcAllowanceAndDeductionRouter = require("./routers/calcAllowanceAndDeduction");
+const medicalReimbursementRouter = require("./routers/mrdicalReimbursement");
 
 const app = express();
 var corsOptions = {
@@ -57,6 +58,7 @@ app.use("/api/epa", epaRouter);
 app.use("/api/epd", epdRouter);
 app.use("/api/tax", taxSlabsRouter);
 app.use("/api/calculate", calcAllowanceAndDeductionRouter);
+app.use("/api/reimbursement", medicalReimbursementRouter);
 
 app.get("/", (req, res) => {
   return res.send("Server is running...");
