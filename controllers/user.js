@@ -221,6 +221,7 @@ async function portalLogin(req, res) {
       user_id: user.user_id,
       email: user.email,
       token,
+      role_id: user.role,
       role: role.name,
       createdAt: user.createdAt,
     };
