@@ -290,7 +290,7 @@ employee_allowances.[percentage]
 from employee_allowances
 left join allowances ON allowances.allowance_id = employee_allowances.allowance_id
 left join allowance_and_deduction_types ON allowance_and_deduction_types.id = allowances.allowance_type
-where employee_id = :employee_id`;
+where employee_id = :employee_id and allowances.is_part_of_gross_salary = 1`;
 
 module.exports = {
   SUPER_ADMIN,
