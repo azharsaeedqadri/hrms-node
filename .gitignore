@@ -4,3 +4,4 @@ seeders
 .history
 launch.json
 .env
+config
