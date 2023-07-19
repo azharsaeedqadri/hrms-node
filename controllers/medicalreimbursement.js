@@ -10,7 +10,7 @@ async function addReimbursement(req, res) {
       amount === null ||
       amount === undefined ||
       pdf_url.trim() === "" ||
-      !!employee_id
+      !employee_id
     ) {
       const resp = getResponse(null, 400, "Provide all required data");
       return res.send(resp);
