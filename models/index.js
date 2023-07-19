@@ -6,16 +6,18 @@ const Sequelize = require("sequelize");
 const process = require("process");
 const basename = path.basename(__filename);
 
-require('dotenv');
+require("dotenv");
 const db = {};
 
+console.log("DB_NAME: ", process.env.DB_NAME);
+
 let sequelize = new Sequelize({
-    database: process.env.DB_NAME,
-    username: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    host: process.env.DB_HOST,
-    dialect: "mssql",
-  });
+  database: process.env.DB_NAME,
+  username: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  host: process.env.DB_HOST,
+  dialect: "mssql",
+});
 
 fs.readdirSync(__dirname)
   .filter((file) => {
