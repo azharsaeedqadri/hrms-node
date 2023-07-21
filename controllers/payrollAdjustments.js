@@ -2,36 +2,40 @@ const { EmployeeAllowance, EmployeeDeduction } = require("../models");
 const {
   getResponse,
 } = require("../utils/valueHelpers");
-const { Op } = require("sequelize");
+const { QueryTypes, Op } = require("sequelize");
+const {
+  GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
+} = require("../utils/constants");
+const db = require("../models");
 
 async function addPayrollItem(req, res) {
   try {
-    const requestArray = Array.from(req.body);
+    const requestObj = req.body;
 
-    for (const item of requestArray) {
-      for (const employeeId of item.employeeIds) {
+    for (const adjustment of requestObj.selectedAdjustments) {
+      for (const employeeId of requestObj.employeeIds) {
 
-        if (item.type === 0) {
+        if (requestObj.type === 0) {
           await EmployeeAllowance.create({
-            allowance_id: item.id,
+            allowance_id: adjustment.id,
             employee_id: employeeId,
-            amount: Math.round(item.amount),
+            amount: Math.round(adjustment.amount),
           });
         }
-        else if (item.type === 1) {
+        else if (requestObj.type === 1) {
           await EmployeeDeduction.create({
-            deduction_id: item.id,
+            deduction_id: adjustment.id,
             employee_id: employeeId,
-            amount: Math.round(item.amount),
+            amount: Math.round(adjustment.amount),
           });
         }
       };
     };
 
     const resp = getResponse(
-      requestArray,
+      requestObj,
       200,
-      "Added payroll records for selected employees"
+      "Added payroll adjustments for selected employees"
     );
 
     res.send(resp);
@@ -50,18 +54,28 @@ async function getAllPayrollRecords(req, res) {
 
     var allowanceDate = new Date(request.date)
 
-    const allEPAs = await EmployeeAllowance.findAll({
-      where: {
-        createdAt: { [Op.gte]: allowanceDate }
-      }
-    });
+    // const allEPAs = await EmployeeAllowance.findAll({
+    //   where: {
+    //     createdAt: { [Op.gte]: allowanceDate }
+    //   }
+    // });
 
-    if (!allEPAs.length) {
+    const payrollAdjustmentsList = await db.sequelize.query(
+      GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
+      {
+        type: QueryTypes.SELECT,
+        replacements: {
+          createdAt: allowanceDate,
+        },
+      }
+    );
+
+    if (!payrollAdjustmentsList.length) {
       const resp = getResponse(null, 404, "Not Found");
       return res.send(resp);
     }
 
-    const resp = getResponse(allEPAs, 200, "Success");
+    const resp = getResponse(payrollAdjustmentsList, 200, "Success");
 
     res.send(resp);
   } catch (err) {
@@ -101,7 +115,7 @@ async function removePayrollItem(req, res) {
     const resp = getResponse(
       request,
       200,
-      "Removed the selected allowance"
+      "Removed the selected adjustments"
     );
 
     res.send(resp);
@@ -149,7 +163,7 @@ async function removeSingleEmployeePayroll(req, res) {
     const resp = getResponse(
       request,
       200,
-      "Removed the selected records"
+      "Removed the selected adjustments"
     );
 
     res.send(resp);

@@ -292,6 +292,41 @@ left join allowances ON allowances.allowance_id = employee_allowances.allowance_
 left join allowance_and_deduction_types ON allowance_and_deduction_types.id = allowances.allowance_type
 where employee_id = :employee_id and allowances.is_part_of_gross_salary = 1`;
 
+const GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES = `SELECT
+[EmployeeAllowance].[id],
+[EmployeeAllowance].[allowance_id],
+[EmployeeAllowance].[employee_id],
+[EmployeeAllowance].[percentage],
+[EmployeeAllowance].[amount],
+[EmployeeAllowance].[createdAt],
+[EmployeeAllowance].[updatedAt], 
+allowances.[name],
+employee_information.[first_name],
+employee_information.[last_name]
+FROM [employee_allowances] AS [EmployeeAllowance] 
+left join allowances ON allowances.allowance_id = [EmployeeAllowance].allowance_id
+LEFT JOIN employee_information ON [EmployeeAllowance].employee_id = employee_information.employee_id
+WHERE [EmployeeAllowance].[createdAt] between :createdAt 
+and :createdAt`
+
+const GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS = `SELECT
+[EmployeeDeduction].[id],
+[EmployeeDeduction].[deduction_id],
+[EmployeeDeduction].[employee_id],
+[EmployeeDeduction].[percentage],
+[EmployeeDeduction].[amount],
+[EmployeeDeduction].[createdAt],
+[EmployeeDeduction].[updatedAt], 
+allowances.[name],
+employee_information.[first_name],
+employee_information.[last_name]
+FROM [employee_deductions] AS [EmployeeDeduction] 
+left join allowances ON allowances.allowance_id = [EmployeeDeduction].deduction_id
+LEFT JOIN employee_information ON [EmployeeDeduction].employee_id = employee_information.employee_id
+WHERE [EmployeeDeduction].[createdAt] between :createdAt' 
+and :createdAt`
+
+
 module.exports = {
   SUPER_ADMIN,
   HR,
@@ -306,4 +341,6 @@ module.exports = {
   FINALIZED_LEAVE_RECORDS_BY_EMPLOYEE_ID_QUERY,
   GET_TEAMS_QUERY,
   GET_CREATED_EMPLOYEE_ALLOWANCES,
+  GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
+  GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS
 };
