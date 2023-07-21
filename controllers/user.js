@@ -230,6 +230,7 @@ async function portalLogin(req, res) {
     res.status(200).send(resp);
   } catch (err) {
     const resp = getResponse(null, 400, err);
+    console.error(err);
     res.send(resp);
   }
 }
