@@ -306,8 +306,8 @@ employee_information.[last_name]
 FROM [employee_allowances] AS [EmployeeAllowance] 
 left join allowances ON allowances.allowance_id = [EmployeeAllowance].allowance_id
 LEFT JOIN employee_information ON [EmployeeAllowance].employee_id = employee_information.employee_id
-WHERE [EmployeeAllowance].[createdAt] between :createdAt 
-and :createdAt`
+WHERE [EmployeeAllowance].[createdAt] between :startDate 
+and :endDate`
 
 const GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS = `SELECT
 [EmployeeDeduction].[id],
@@ -317,14 +317,14 @@ const GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS = `SELECT
 [EmployeeDeduction].[amount],
 [EmployeeDeduction].[createdAt],
 [EmployeeDeduction].[updatedAt], 
-allowances.[name],
+deductions.[name],
 employee_information.[first_name],
 employee_information.[last_name]
 FROM [employee_deductions] AS [EmployeeDeduction] 
-left join allowances ON allowances.allowance_id = [EmployeeDeduction].deduction_id
+left join deductions ON deductions.deduction_id = [EmployeeDeduction].deduction_id
 LEFT JOIN employee_information ON [EmployeeDeduction].employee_id = employee_information.employee_id
-WHERE [EmployeeDeduction].[createdAt] between :createdAt' 
-and :createdAt`
+WHERE [EmployeeDeduction].[createdAt] between :startDate
+and :endDate`
 
 
 module.exports = {

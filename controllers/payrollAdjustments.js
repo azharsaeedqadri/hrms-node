@@ -5,6 +5,7 @@ const {
 const { QueryTypes, Op } = require("sequelize");
 const {
   GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
+  GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS
 } = require("../utils/constants");
 const db = require("../models");
 
@@ -54,28 +55,62 @@ async function getAllPayrollRecords(req, res) {
 
     var allowanceDate = new Date(request.date)
 
-    // const allEPAs = await EmployeeAllowance.findAll({
-    //   where: {
-    //     createdAt: { [Op.gte]: allowanceDate }
-    //   }
-    // });
+    var startDate = new Date(allowanceDate.getFullYear(), allowanceDate.getMonth(), 1);
+    var endDate = new Date(allowanceDate.getFullYear(), allowanceDate.getMonth() + 1, 0);
 
-    const payrollAdjustmentsList = await db.sequelize.query(
-      GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
+    const payrollAdjustmentsAllowances = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
       {
+        replacements: { startDate: startDate, endDate: endDate },
         type: QueryTypes.SELECT,
-        replacements: {
-          createdAt: allowanceDate,
-        },
-      }
-    );
+      });
 
-    if (!payrollAdjustmentsList.length) {
+
+    const payrollAdjustmentsDeductions = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
+      {
+        replacements: { startDate: startDate, endDate: endDate },
+        type: QueryTypes.SELECT,
+      });
+
+    const allowancesGroupedData = payrollAdjustmentsAllowances.reduce((acc, obj) => {
+      const key = `${obj.allowance_id}-${obj.name}`;
+      const { allowance_id, ...rest } = obj;
+      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
+      return acc;
+    }, {});
+
+    const deductionsGroupedData = payrollAdjustmentsDeductions.reduce((acc, obj) => {
+      const key = `${obj.deduction_id}-${obj.name}`;
+      const { deduction_id, ...rest } = obj;
+      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
+      return acc;
+    }, {});
+
+    const allowancesArray = Object.entries(allowancesGroupedData).map(([id, values]) => (
+      {
+        id: parseInt(id, 10),
+        name: values[0].name,
+        amount: values[0].amount,
+        type: 0,
+        employees: values.map((val) => ({ id: val.employee_id, name: `${val.first_name} ${val.last_name}` }))//.join(', '),
+      }));
+
+    const deductionsArray = Object.entries(deductionsGroupedData).map(([id, values]) => (
+      {
+        id: parseInt(id, 10),
+        name: values[0].name,
+        amount: values[0].amount,
+        type: 1,
+        employees: values.map((val) => ({ id: val.employee_id, name: `${val.first_name} ${val.last_name}` }))//.join(', '),
+      }));
+
+    allowancesArray.push(...deductionsArray);
+
+    if (!allowancesArray.length) {
       const resp = getResponse(null, 404, "Not Found");
       return res.send(resp);
     }
 
-    const resp = getResponse(payrollAdjustmentsList, 200, "Success");
+    const resp = getResponse(allowancesArray, 200, "Success");
 
     res.send(resp);
   } catch (err) {
