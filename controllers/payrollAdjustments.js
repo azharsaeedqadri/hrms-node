@@ -11,6 +11,11 @@ const db = require("../models");
 
 async function addPayrollItem(req, res) {
   try {
+
+    if (!req.body || !req.body.selectedAdjustments || !(req.body.hasOwnProperty("type")) || !req.body.employeeIds) {
+      throw new Error('Request body is missing required parameters.');
+    }
+
     const requestObj = req.body;
 
     var todaysDate = new Date();
@@ -78,7 +83,8 @@ async function addPayrollItem(req, res) {
     res.send(resp);
 
   } catch (err) {
-    const resp = getResponse(null, 400, "Something went wrong");
+    var message = err.message ? err.message : "Something went wrong while deleting the records";
+    const resp = getResponse(null, 400, message);
     console.error(err);
     res.send(resp);
   }
@@ -86,6 +92,10 @@ async function addPayrollItem(req, res) {
 
 async function getAllPayrollRecords(req, res) {
   try {
+
+    if (!req.body || !req.body.date) {
+      throw new Error('Request body is missing required parameters.');
+    }
 
     const request = req.body;
 
@@ -150,7 +160,8 @@ async function getAllPayrollRecords(req, res) {
 
     res.send(resp);
   } catch (err) {
-    const resp = getResponse(null, 400, err.message);
+    var message = err.message ? err.message : "Something went wrong while deleting the records";
+    const resp = getResponse(null, 400, message);
     console.error(err);
     res.send(resp);
   }
@@ -158,6 +169,11 @@ async function getAllPayrollRecords(req, res) {
 
 async function removePayrollItem(req, res) {
   try {
+
+    if (!req.body || !req.body.id || !(req.body.hasOwnProperty("type")) || !req.body.date) {
+      throw new Error('Request body is missing required parameters.');
+    }
+
     const request = req.body;
 
     var reqDate = new Date(request.date)
@@ -258,7 +274,8 @@ async function removePayrollItem(req, res) {
     res.send(resp);
 
   } catch (err) {
-    const resp = getResponse(null, 400, "Something went wrong while deleting the records");
+    var message = err.message ? err.message : "Something went wrong while deleting the records";
+    const resp = getResponse(null, 400, message);
     console.error(err);
     res.send(resp);
   }
