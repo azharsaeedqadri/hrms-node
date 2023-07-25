@@ -2,7 +2,7 @@ const { EmployeeAllowance, EmployeeDeduction } = require("../models");
 const {
   getResponse,
 } = require("../utils/valueHelpers");
-const { QueryTypes, Op } = require("sequelize");
+const { Sequelize, QueryTypes, Op } = require("sequelize");
 const {
   GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
   GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS
@@ -13,15 +13,51 @@ async function addPayrollItem(req, res) {
   try {
     const requestObj = req.body;
 
+    var todaysDate = new Date();
+
+    var startDate = new Date(todaysDate.getFullYear(), todaysDate.getMonth(), 1);
+    var endDate = new Date(todaysDate.getFullYear(), todaysDate.getMonth() + 1, 0);
+
     for (const adjustment of requestObj.selectedAdjustments) {
       for (const employeeId of requestObj.employeeIds) {
 
         if (requestObj.type === 0) {
+
           await EmployeeAllowance.create({
             allowance_id: adjustment.id,
             employee_id: employeeId,
             amount: Math.round(adjustment.amount),
           });
+
+          //const t = await sequelize.transaction();
+
+          // const result = await models.sequelize.transaction(async (trans) => {
+          //   try {
+          //     //await sequelize.sync(); // Create the table if it doesn't exist
+
+          //     const [empAllowance, created] = await EmployeeAllowance.findOrCreate({
+          //       where: {
+          //         allowance_id: adjustment.id,
+          //         employee_id: employeeId,
+          //         createdAt: {
+          //           [Op.between]: [startDate, endDate],
+          //         }
+          //       },
+          //       defaults: {
+          //         amount: Math.round(adjustment.amount),
+          //       },
+          //       transaction: trans
+          //     });
+
+          //     if (created) {
+          //       console.log('Payroll item created:', empAllowance);
+          //     } else {
+          //       console.log('Payroll item found:', empAllowance);
+          //     }
+          //   } catch (error) {
+          //     console.error('Error:', error);
+          //   }
+          // })();
         }
         else if (requestObj.type === 1) {
           await EmployeeDeduction.create({
@@ -126,47 +162,117 @@ async function removePayrollItem(req, res) {
 
     var reqDate = new Date(request.date)
 
+    var startDate = new Date(reqDate.getFullYear(), reqDate.getMonth(), 1);
+    var endDate = new Date(reqDate.getFullYear(), reqDate.getMonth() + 1, 0);
+
+    var resp = null;
     if (request.type === 0) {
-      await EmployeeAllowance.destroy({
-        where: {
-          allowance_id: {
-            [Op.eq]: request.id
-          },
-          createdAt: { [Op.gte]: reqDate }
+      // await EmployeeAllowance.destroy({
+      //   where: {
+      //     allowance_id: {
+      //       [Op.eq]: request.id
+      //     },
+      //     createdAt: {
+      //       [Op.between]: [startDate, endDate],
+      //     }
+      //   }
+      // });
+
+      const filterOptions = {
+        allowance_id: {
+          [Op.eq]: request.id
+        },
+        createdAt: {
+          [Op.between]: [startDate, endDate],
         }
+      };
+
+      if (request.employeeId) {
+        filterOptions.employee_id = {
+          [Op.eq]: request.employeeId,
+        };
+      }
+
+      var records = await EmployeeAllowance.findAll({
+        where: filterOptions
       });
+
+      if (records.length > 0) {
+        await EmployeeAllowance.destroy({
+          where: filterOptions
+        });
+
+        resp = getResponse(request, 200, "Records deleted successfully!");
+      } else {
+        resp = getResponse(request, 404, "Records not found.");
+      }
+
     }
     else if (request.type === 1) {
-      await EmployeeDeduction.destroy({
-        where: {
-          deduction_id: {
-            [Op.eq]: request.id
-          },
-          createdAt: { [Op.gte]: reqDate }
+      // await EmployeeDeduction.destroy({
+      //   where: {
+      //     deduction_id: {
+      //       [Op.eq]: request.id
+      //     },
+      //     createdAt: {
+      //       [Op.between]: [startDate, endDate],
+      //     }
+      //   }
+      // });
+
+      const filterOptions = {
+        deduction_id: {
+          [Op.eq]: request.id
+        },
+        createdAt: {
+          [Op.between]: [startDate, endDate],
         }
+      };
+
+      if (request.employeeId) {
+        filterOptions.employee_id = {
+          [Op.eq]: request.employeeId,
+        };
+      }
+
+      var records = await EmployeeDeduction.findAll({
+        where: filterOptions
       });
+
+      if (records.length > 0) {
+        await EmployeeDeduction.destroy({
+          where: filterOptions
+        });
+        resp = getResponse(request, 200, "Records deleted successfully!");
+      } else {
+        resp = getResponse(request, 404, "Records not found.");
+      }
     }
 
-    const resp = getResponse(
-      request,
-      200,
-      "Removed the selected adjustments"
-    );
+    // const resp = getResponse(
+    //   request,
+    //   200,
+    //   "Removed the selected adjustments"
+    // );
 
     res.send(resp);
 
   } catch (err) {
-    const resp = getResponse(null, 400, "Something went wrong");
+    const resp = getResponse(null, 400, "Something went wrong while deleting the records");
     console.error(err);
     res.send(resp);
   }
 }
 
+/*
 async function removeSingleEmployeePayroll(req, res) {
   try {
     const request = req.body;
 
-    var reqDate = new Date(request.date);
+    var reqDate = new Date(request.date)
+
+    var startDate = new Date(reqDate.getFullYear(), reqDate.getMonth(), 1);
+    var endDate = new Date(reqDate.getFullYear(), reqDate.getMonth() + 1, 0);
 
     if (request.type === 0) {
       await EmployeeAllowance.destroy({
@@ -177,7 +283,9 @@ async function removeSingleEmployeePayroll(req, res) {
           employee_id: {
             [Op.eq]: request.employeeId
           },
-          createdAt: { [Op.gte]: reqDate }
+          createdAt: {
+            [Op.between]: [startDate, endDate],
+          }
         }
       });
     }
@@ -190,7 +298,9 @@ async function removeSingleEmployeePayroll(req, res) {
           employee_id: {
             [Op.eq]: request.employeeId
           },
-          createdAt: { [Op.gte]: reqDate }
+          createdAt: {
+            [Op.between]: [startDate, endDate],
+          }
         }
       });
     }
@@ -198,7 +308,7 @@ async function removeSingleEmployeePayroll(req, res) {
     const resp = getResponse(
       request,
       200,
-      "Removed the selected adjustments"
+      "Removed the selected employee's adjustments"
     );
 
     res.send(resp);
@@ -209,10 +319,10 @@ async function removeSingleEmployeePayroll(req, res) {
     res.send(resp);
   }
 }
+*/
 
 module.exports = {
   addPayrollItem,
   getAllPayrollRecords,
-  removePayrollItem,
-  removeSingleEmployeePayroll
+  removePayrollItem
 };
