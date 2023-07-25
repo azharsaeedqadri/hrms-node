@@ -1,4 +1,8 @@
-const { MedicalReimbursement, EmployeeInformation } = require("../models");
+const {
+  MedicalReimbursement,
+  EmployeeInformation,
+  StatusType,
+} = require("../models");
 const { getResponse } = require("../utils/valueHelpers");
 
 async function addReimbursement(req, res) {
@@ -42,7 +46,7 @@ async function getReimbursementByID(req, res) {
     const reimbursementID = parseInt(req.params.id);
 
     const reimbursement = await MedicalReimbursement.findByPk(reimbursementID, {
-      include: EmployeeInformation,
+      include: [{ model: StatusType }, { model: EmployeeInformation }],
     });
 
     const resp = getResponse(reimbursement, 200, "Success");
@@ -58,7 +62,7 @@ async function getReimbursementByID(req, res) {
 async function getAllReimbursements(req, res) {
   try {
     const reimbursements = await MedicalReimbursement.findAll({
-      include: EmployeeInformation,
+      include: [{ model: StatusType }, { model: EmployeeInformation }],
     });
 
     if (!reimbursements.length) {
@@ -76,8 +80,67 @@ async function getAllReimbursements(req, res) {
   }
 }
 
+async function getReimbursementDetailsByEmpID(req, res) {
+  try {
+    const empID = parseInt(req.params.id);
+
+    const allEmpReimbursements = await MedicalReimbursement.findAll(
+      { include: [{ model: StatusType }, { model: EmployeeInformation }] },
+      { where: { employee_id: empID } }
+    );
+
+    if (!allEmpReimbursements.length) {
+      const resp = getResponse(
+        null,
+        404,
+        "No medical reimbursements submitted"
+      );
+      return res.send(resp);
+    }
+
+    const resp = getResponse(allEmpReimbursements, 200, "success");
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong.");
+    console.error(err);
+    res.send(resp);
+  }
+}
+
+async function updateStatus(req, res) {
+  try {
+    const reimbursementID = parseInt(req.params.id);
+    const { status } = req.body;
+
+    await MedicalReimbursement.update(
+      { status },
+      { where: { id: reimbursementID } }
+    );
+
+    const updatedReimbursement = await MedicalReimbursement.findByPk(
+      reimbursementID,
+      {
+        include: [{ model: StatusType }, { model: EmployeeInformation }],
+      }
+    );
+
+    const resp = getResponse(
+      updatedReimbursement,
+      200,
+      "Status changed successfully"
+    );
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong.");
+    console.error(err);
+    res.send(resp);
+  }
+}
+
 module.exports = {
   addReimbursement,
   getReimbursementByID,
   getAllReimbursements,
+  getReimbursementDetailsByEmpID,
+  updateStatus,
 };

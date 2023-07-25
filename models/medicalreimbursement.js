@@ -15,6 +15,13 @@ module.exports = (sequelize, DataTypes) => {
       models.EmployeeInformation.hasMany(models.MedicalReimbursement, {
         foreignKey: "employee_id",
       });
+
+      models.MedicalReimbursement.belongsTo(models.StatusType, {
+        foreignKey: "status",
+      });
+      models.StatusType.hasMany(models.MedicalReimbursement, {
+        foreignKey: "id",
+      });
     }
   }
   MedicalReimbursement.init(
@@ -33,6 +40,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.FLOAT,
         allowNull: false,
       },
+      status: DataTypes.INTEGER,
       pdf_url: {
         type: DataTypes.STRING,
         allowNull: false,
