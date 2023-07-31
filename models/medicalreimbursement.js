@@ -40,7 +40,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.FLOAT,
         allowNull: false,
       },
-      status: DataTypes.INTEGER,
+      status: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1,
+      },
       pdf_url: {
         type: DataTypes.STRING,
         allowNull: false,

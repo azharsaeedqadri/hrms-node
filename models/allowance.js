@@ -28,6 +28,7 @@ module.exports = (sequelize, DataTypes) => {
       name: DataTypes.STRING,
       description: DataTypes.TEXT,
       allowance_type: DataTypes.INTEGER,
+      is_calculateable: DataTypes.BOOLEAN,
       is_part_of_gross_salary: DataTypes.BOOLEAN,
       is_taxable: DataTypes.BOOLEAN,
       is_fixed: DataTypes.BOOLEAN,
