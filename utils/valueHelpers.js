@@ -34,7 +34,7 @@ const calculateEPF = (basicSalary) => {
 };
 
 const calculateLeaveEncashments = (leaveBalance, hourlyRate) => {
-  return leaveBalance * hourlyRate;
+  return leaveBalance * hourlyRate * 8;
 };
 
 module.exports = {

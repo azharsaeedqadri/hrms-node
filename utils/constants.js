@@ -31,6 +31,7 @@ teams.[name] as team,
 salary_types.[name] as salaryType, 
 employee_information.[current_salary], 
 employee_information.[gross_salary],
+employee_information.[hourly_rate],
 employee_information.[company_id],
 employee_information.[basic_salary], 
 currency_types.[name] as currencyType, 
@@ -107,6 +108,7 @@ employee_information.[current_salary],
 employee_information.[gross_salary],
 employee_information.[company_id],
 employee_information.[basic_salary], 
+employee_information.[hourly_rate],
 currency_types.[name] as currencyType, 
 currency_types.[id] as currencyType_id, 
 employee_information.[project_manager], 
@@ -298,6 +300,7 @@ const GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES = `SELECT
 [EmployeeAllowance].[employee_id],
 [EmployeeAllowance].[percentage],
 [EmployeeAllowance].[amount],
+[allowances].[is_calculateable],
 [EmployeeAllowance].[createdAt],
 [EmployeeAllowance].[updatedAt], 
 allowances.[name],
@@ -306,7 +309,7 @@ employee_information.[last_name]
 FROM [employee_allowances] AS [EmployeeAllowance] 
 left join allowances ON allowances.allowance_id = [EmployeeAllowance].allowance_id
 LEFT JOIN employee_information ON [EmployeeAllowance].employee_id = employee_information.employee_id
-WHERE [EmployeeAllowance].[createdAt] between :startDate 
+WHERE cast([EmployeeAllowance].[createdAt] as date) between :startDate 
 and :endDate`
 
 const GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS = `SELECT
@@ -315,6 +318,7 @@ const GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS = `SELECT
 [EmployeeDeduction].[employee_id],
 [EmployeeDeduction].[percentage],
 [EmployeeDeduction].[amount],
+[deductions].[is_calculateable],
 [EmployeeDeduction].[createdAt],
 [EmployeeDeduction].[updatedAt], 
 deductions.[name],
@@ -323,7 +327,7 @@ employee_information.[last_name]
 FROM [employee_deductions] AS [EmployeeDeduction] 
 left join deductions ON deductions.deduction_id = [EmployeeDeduction].deduction_id
 LEFT JOIN employee_information ON [EmployeeDeduction].employee_id = employee_information.employee_id
-WHERE [EmployeeDeduction].[createdAt] between :startDate
+WHERE cast([EmployeeDeduction].[createdAt] as date) between :startDate
 and :endDate`
 
 

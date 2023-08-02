@@ -11,6 +11,7 @@ async function addNewDeduction(req, res) {
       description,
       deduction_type,
       is_fixed,
+      is_calculateable,
       status,
       company_id,
       amount,
@@ -33,6 +34,7 @@ async function addNewDeduction(req, res) {
       amount,
       percentage,
       is_fixed,
+      is_calculateable,
       status,
       company_id,
     });

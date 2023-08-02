@@ -1,6 +1,6 @@
 const { EmployeeAllowance, EmployeeDeduction } = require("../models");
 const {
-  getResponse,
+  getResponse, calculateOvertime, calculateLeaveEncashments, calculateEPF,
 } = require("../utils/valueHelpers");
 const { Sequelize, QueryTypes, Op } = require("sequelize");
 const {
@@ -281,65 +281,178 @@ async function removePayrollItem(req, res) {
   }
 }
 
-/*
-async function removeSingleEmployeePayroll(req, res) {
+async function addOvertime(req, res) {
   try {
-    const request = req.body;
 
-    var reqDate = new Date(request.date)
-
-    var startDate = new Date(reqDate.getFullYear(), reqDate.getMonth(), 1);
-    var endDate = new Date(reqDate.getFullYear(), reqDate.getMonth() + 1, 0);
-
-    if (request.type === 0) {
-      await EmployeeAllowance.destroy({
-        where: {
-          allowance_id: {
-            [Op.eq]: request.id
-          },
-          employee_id: {
-            [Op.eq]: request.employeeId
-          },
-          createdAt: {
-            [Op.between]: [startDate, endDate],
-          }
-        }
-      });
+    if (!req.body ||
+      !(req.body.hasOwnProperty("id")) ||
+      !(req.body.hasOwnProperty("hours")) ||
+      !req.body.employees) {
+      throw new Error('Request body is missing required parameters.');
     }
-    else if (request.type === 1) {
-      await EmployeeDeduction.destroy({
-        where: {
-          deduction_id: {
-            [Op.eq]: request.id
-          },
-          employee_id: {
-            [Op.eq]: request.employeeId
-          },
-          createdAt: {
-            [Op.between]: [startDate, endDate],
-          }
-        }
+
+    const { id, hours, employees } = req.body;
+
+    for (const employee of employees) {
+      const { employeeId, grossSalary } = employee;
+
+      console.log(
+        `========== adding overtime for employeeId: ${employeeId} ==========`
+      );
+
+      const overtimeAmout = calculateOvertime(hours, grossSalary);
+
+      await EmployeeAllowance.create({
+        allowance_id: id,
+        employee_id: employeeId,
+        amount: Math.round(overtimeAmout),
       });
+
+      console.log(
+        `========== added overtime for employeeId: ${employeeId} ==========`
+      );
     }
 
     const resp = getResponse(
-      request,
+      employees,
       200,
-      "Removed the selected employee's adjustments"
+      "Added overtime for these employees"
     );
 
     res.send(resp);
-
   } catch (err) {
     const resp = getResponse(null, 400, "Something went wrong");
     console.error(err);
     res.send(resp);
   }
 }
-*/
+
+async function addEncashedLeaves(req, res) {
+  try {
+
+    if (!req.body ||
+      !(req.body.hasOwnProperty("id")) ||
+      !(req.body.hasOwnProperty("leaveBalance")) ||
+      !req.body.employees) {
+      throw new Error('Request body is missing required parameters.');
+    }
+
+    const { id, leaveBalance, employees } = req.body;
+
+    for (const employee of employees) {
+      const { employeeId, hourlyRate } = employee;
+
+      console.log(
+        `========== adding encashed leaves for employeeId: ${employeeId} ==========`
+      );
+
+      const leaveEncashmentAmount = calculateLeaveEncashments(
+        leaveBalance,
+        hourlyRate
+      );
+      await EmployeeAllowance.create({
+        allowance_id: id,
+        employee_id: employeeId,
+        amount: Math.round(leaveEncashmentAmount),
+      });
+
+      console.log(
+        `========== added encashed leaves for employeeId: ${employeeId} ==========`
+      );
+    }
+
+    const resp = getResponse(
+      employees,
+      200,
+      "Added encashed leaves for these employees"
+    );
+
+    res.send(resp);
+    // const promises = employees.map(async (employee) => {
+    //   const { employee_id, gross_salary } = employee;
+
+    //   const result = await EmployeeInformation.findByPk(employee_id);
+    //   return result;
+    // });
+
+    // const employeesInformation = await Promise.all(promises);
+
+    // return res.send(results);
+
+    //   for (const employee of employees) {
+    //     const {employee_id} = employee
+
+    //     const employee = await
+    //   }
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong");
+    console.error(err);
+    res.send(resp);
+  }
+}
+
+async function addEPF(req, res) {
+  try {
+
+    if (!req.body ||
+      !(req.body.hasOwnProperty("id")) ||
+      !req.body.employees) {
+      throw new Error('Request body is missing required parameters.');
+    }
+
+    const { id, employees } = req.body;
+
+    for (const employee of employees) {
+      const { employeeId, basicSalary } = employee;
+
+      console.log(
+        `========== adding epf for employeeId: ${employeeId} ==========`
+      );
+
+      const epfAmount = calculateEPF(basicSalary);
+
+      await EmployeeDeduction.create({
+        deduction_id: id,
+        employee_id: employeeId,
+        amount: Math.round(epfAmount),
+      });
+
+      console.log(
+        `========== added epf for basicSalary: ${basicSalary} ==========`
+      );
+    }
+
+    const resp = getResponse(employees, 200, "Added epf for these employees");
+
+    res.send(resp);
+    // const promises = employees.map(async (employee) => {
+    //   const { employee_id, gross_salary } = employee;
+
+    //   const result = await EmployeeInformation.findByPk(employee_id);
+    //   return result;
+    // });
+
+    // const employeesInformation = await Promise.all(promises);
+
+    // return res.send(results);
+
+    //   for (const employee of employees) {
+    //     const {employee_id} = employee
+
+    //     const employee = await
+    //   }
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong");
+    console.error(err);
+    res.send(resp);
+  }
+}
 
 module.exports = {
   addPayrollItem,
   getAllPayrollRecords,
-  removePayrollItem
+  removePayrollItem,
+  addOvertime,
+  addEncashedLeaves,
+  addEPF
 };

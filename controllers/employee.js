@@ -80,6 +80,11 @@ async function addNewEmployee(req, res) {
       return res.send(resp);
     }
 
+    const annualSalary = gross_salary * 12;
+    const weeklySalary = annualSalary / 52;
+    const dailySalary = weeklySalary / 5;
+    const hourlyRate = dailySalary / 8;
+
     await EmployeeInformation.create({
       salutation_id,
       employee_code,
@@ -274,12 +279,17 @@ async function editEmployeeInformation(req, res) {
   try {
     const employeeID = parseInt(req.params.id);
     const bodyValues = req.body;
-    const { allowances } = bodyValues;
+    const { allowances, gross_salary } = bodyValues;
     const token = req.header("authorization").split("Bearer ");
 
     const updatedBy = getUserIDByBearerToken(token[1]);
 
-    const values = { ...bodyValues, updatedBy };
+    const annualSalary = gross_salary * 12;
+    const weeklySalary = annualSalary / 52;
+    const dailySalary = weeklySalary / 5;
+    const hourlyRate = dailySalary / 8;
+
+    const values = { ...bodyValues, updatedBy, hourly_rate: hourlyRate, };
 
     if (Object.keys(values).length === 0 && values.constructor === Object) {
       const resp = getResponse({}, 401, "No values to update");
