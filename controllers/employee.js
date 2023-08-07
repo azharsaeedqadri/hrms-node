@@ -51,6 +51,7 @@ async function addNewEmployee(req, res) {
       gross_salary,
       company_id,
       basic_salary,
+      leave_balance,
       currency_type,
       project_manager,
       resignation_date,
@@ -116,6 +117,7 @@ async function addNewEmployee(req, res) {
       hourly_rate: hourlyRate,
       company_id,
       basic_salary,
+      leave_balance,
       currency_type,
       project_manager,
       resignation_date,
@@ -289,7 +291,7 @@ async function editEmployeeInformation(req, res) {
     const dailySalary = weeklySalary / 5;
     const hourlyRate = dailySalary / 8;
 
-    const values = { ...bodyValues, updatedBy, hourly_rate: hourlyRate, };
+    const values = { ...bodyValues, updatedBy, hourly_rate: hourlyRate };
 
     if (Object.keys(values).length === 0 && values.constructor === Object) {
       const resp = getResponse({}, 401, "No values to update");

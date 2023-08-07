@@ -34,6 +34,7 @@ employee_information.[gross_salary],
 employee_information.[hourly_rate],
 employee_information.[company_id],
 employee_information.[basic_salary], 
+employee_information.[leave_balance],
 currency_types.[name] as currencyType, 
 employee_information.[project_manager], 
 employee_information.[resignation_date], 
@@ -109,6 +110,7 @@ employee_information.[gross_salary],
 employee_information.[company_id],
 employee_information.[basic_salary], 
 employee_information.[hourly_rate],
+employee_information.[leave_balance],
 currency_types.[name] as currencyType, 
 currency_types.[id] as currencyType_id, 
 employee_information.[project_manager], 
@@ -310,7 +312,7 @@ FROM [employee_allowances] AS [EmployeeAllowance]
 left join allowances ON allowances.allowance_id = [EmployeeAllowance].allowance_id
 LEFT JOIN employee_information ON [EmployeeAllowance].employee_id = employee_information.employee_id
 WHERE cast([EmployeeAllowance].[createdAt] as date) between :startDate 
-and :endDate`
+and :endDate`;
 
 const GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS = `SELECT
 [EmployeeDeduction].[id],
@@ -328,8 +330,7 @@ FROM [employee_deductions] AS [EmployeeDeduction]
 left join deductions ON deductions.deduction_id = [EmployeeDeduction].deduction_id
 LEFT JOIN employee_information ON [EmployeeDeduction].employee_id = employee_information.employee_id
 WHERE cast([EmployeeDeduction].[createdAt] as date) between :startDate
-and :endDate`
-
+and :endDate`;
 
 module.exports = {
   SUPER_ADMIN,
@@ -346,5 +347,5 @@ module.exports = {
   GET_TEAMS_QUERY,
   GET_CREATED_EMPLOYEE_ALLOWANCES,
   GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
-  GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS
+  GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
 };

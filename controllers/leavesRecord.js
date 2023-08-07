@@ -1,4 +1,9 @@
-const { EmployeeLeavesRecord, HrUser, LeaveReason } = require("../models");
+const {
+  EmployeeLeavesRecord,
+  HrUser,
+  LeaveReason,
+  EmployeeInformation,
+} = require("../models");
 const db = require("../models");
 const { QueryTypes } = require("sequelize");
 const {
@@ -25,6 +30,28 @@ async function addRecord(req, res) {
       reason,
     } = req.body;
 
+    const employee = await EmployeeInformation.findByPk(employee_id);
+
+    const { leave_balance } = employee;
+
+    if (leave_balance <= 0) {
+      const resp = getResponse(
+        null,
+        400,
+        "You have consumed all of your allowed leaves."
+      );
+      return res.send(resp);
+    }
+
+    const updatedLeaveBalance = leave_balance - no_of_days;
+
+    await EmployeeInformation.update(
+      {
+        leave_balance: updatedLeaveBalance,
+      },
+      { where: { employee_id } }
+    );
+
     const createdRecord = await EmployeeLeavesRecord.create({
       employee_id,
       leave_type_id,
@@ -35,7 +62,11 @@ async function addRecord(req, res) {
       reason,
     });
 
-    const resp = getResponse(createdRecord, 200, "Leave Record added");
+    const resp = getResponse(
+      createdRecord,
+      200,
+      "Leave Record added and leave balanve updated."
+    );
 
     res.status(200).send(resp);
   } catch (err) {
@@ -319,6 +350,17 @@ async function cancelLeaveRequest(req, res) {
   }
 }
 
+// Cron Job function for resetting employees leave balance
+async function leaveBalanceCronJob() {
+  try {
+    // Reset leaves for all employees
+    await EmployeeInformation.update({ leave_balance: 14 }, { where: {} });
+    console.log("Leaves reset for all employees.");
+  } catch (error) {
+    console.error("Error resetting leaves:", error);
+  }
+}
+
 module.exports = {
   addRecord,
   getLeavesRequestList,
@@ -328,4 +370,5 @@ module.exports = {
   addReasonAndUpdateLeaveDates,
   getLeaveReasonsByLeaveID,
   cancelLeaveRequest,
+  leaveBalanceCronJob,
 };

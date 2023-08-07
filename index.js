@@ -1,6 +1,7 @@
 const express = require("express");
 require("dotenv").config();
 const cors = require("cors");
+const cron = require("node-cron");
 const fs = require("fs");
 const https = require("https");
 
@@ -19,6 +20,7 @@ const epdRouter = require("./routers/employeePayDeduction");
 const taxSlabsRouter = require("./routers/taxSlab");
 const medicalReimbursementRouter = require("./routers/mrdicalReimbursement");
 const payrollAdjustments = require("./routers/payrollAdjustments");
+const { leaveBalanceCronJob } = require("./controllers/leavesRecord");
 
 const app = express();
 var corsOptions = {
@@ -59,6 +61,9 @@ app.use("/api/epd", epdRouter);
 app.use("/api/tax", taxSlabsRouter);
 app.use("/api/reimbursement", medicalReimbursementRouter);
 app.use("/api/payrollAdjustments", payrollAdjustments);
+
+// Schedule the task to reset leaves at the end of the fiscal year (fiscal year ends at July 31st at 11:59 PM)
+cron.schedule("59 23 31 7 *", leaveBalanceCronJob);
 
 app.get("/", (req, res) => {
   return res.send("Server is running...");

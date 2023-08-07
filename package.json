@@ -26,6 +26,7 @@
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
+    "node-cron": "^3.0.2",
     "sequelize": "^6.25.5",
     "tedious": "^15.1.1"
   },
