@@ -243,6 +243,7 @@ const LEAVE_RECORD_BY_LEAVE_ID_QUERY = `SELECT [employee_leaves_record].[id] as 
 [employee_information].[last_name] as employeeLastName,
 [employee_information].[personal_email] as employeePersonalEmail,
 [employee_information].[photo] as profilePicture,
+[employee_information].[leave_balance],
 [designations].[name] as designation,
 [leave_types].[name] as leaveType,
 [employee_leaves_record].[from_date] as fromDate, 
