@@ -12,6 +12,7 @@ const {
 } = require("../utils/valueHelpers");
 const {
   HR,
+  TOTAL_LEAVES,
   GET_LEAVES_REQUEST_LIST_QUERY,
   LEAVE_RECORD_BY_EMPLOYEE_ID_QUERY,
   LEAVE_RECORD_BY_LEAVE_ID_QUERY,
@@ -354,7 +355,10 @@ async function cancelLeaveRequest(req, res) {
 async function leaveBalanceCronJob() {
   try {
     // Reset leaves for all employees
-    await EmployeeInformation.update({ leave_balance: 14 }, { where: {} });
+    await EmployeeInformation.update(
+      { leave_balance: TOTAL_LEAVES },
+      { where: {} }
+    );
     console.log("Leaves reset for all employees.");
   } catch (error) {
     console.error("Error resetting leaves:", error);

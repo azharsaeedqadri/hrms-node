@@ -20,7 +20,7 @@ const {
   Month,
   AllowanceAndDeductionType,
 } = require("../models");
-const { HR } = require("../utils/constants");
+const { HR, TOTAL_LEAVES } = require("../utils/constants");
 const {
   getResponse,
   getUserIDByBearerToken,
@@ -84,6 +84,7 @@ async function getAllDropdownData(req, res) {
       teams,
       months,
       allowanceAndDeductionTypes,
+      total_leaves_count: TOTAL_LEAVES,
     };
 
     const resp = getResponse(dropdownsData, 200, "Lists fetched successfully");

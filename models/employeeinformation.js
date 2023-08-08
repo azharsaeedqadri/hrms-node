@@ -1,5 +1,7 @@
 "use strict";
 const { Model } = require("sequelize");
+const { TOTAL_LEAVES } = require("../utils/constants");
+
 module.exports = (sequelize, DataTypes) => {
   class EmployeeInformation extends Model {
     /**
@@ -56,7 +58,7 @@ module.exports = (sequelize, DataTypes) => {
       basic_salary: DataTypes.INTEGER,
       leave_balance: {
         type: DataTypes.INTEGER,
-        defaultValue: 14,
+        defaultValue: TOTAL_LEAVES,
       },
       currency_type: DataTypes.INTEGER,
       project_manager: DataTypes.BIGINT,

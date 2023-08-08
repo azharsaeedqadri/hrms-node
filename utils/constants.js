@@ -3,6 +3,8 @@ const HR = 2;
 const PM = 3;
 const DEVELOPER = 4;
 
+const TOTAL_LEAVES = 14;
+
 const GET_ALL_EMPLOYEES_QUERY = `SELECT employee_information.[employee_id], 
 salutations.[name] as salutation, 
 employee_information.[employee_code], 
@@ -337,6 +339,7 @@ module.exports = {
   HR,
   PM,
   DEVELOPER,
+  TOTAL_LEAVES,
   GET_ALL_EMPLOYEES_QUERY,
   GET_EMPLOYEE_BY_ID,
   GET_LEAVES_REQUEST_LIST_QUERY,
