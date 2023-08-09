@@ -16,7 +16,7 @@ router.post("/addLeave", addRecord);
 
 router.get("/getAll", getLeavesRequestList);
 
-router.get("/:id", getLeaveRecordsByEmployeeID);
+router.get("/emp/:id", getLeaveRecordsByEmployeeID);
 
 router.get("/leaveID/:id", getLeaveRecordsByLeaveID);
 

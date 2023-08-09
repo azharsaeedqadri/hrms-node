@@ -156,7 +156,7 @@ const GET_LEAVES_REQUEST_LIST_QUERY = `SELECT [employee_leaves_record].[id] as l
 [employee_information].[employee_id] as employeeID,
 [employee_information].[first_name] as employeeFirstName,
 [employee_information].[last_name] as employeeLastName,
-[employee_information].[leave_balance].
+[employee_information].[leave_balance],
 [employee_information].[personal_email] as employeePersonalEmail,
 [employee_information].[photo] as profilePicture,
 [designations].[name] as designation,
