@@ -44,15 +44,6 @@ async function addRecord(req, res) {
       return res.send(resp);
     }
 
-    const updatedLeaveBalance = leave_balance - no_of_days;
-
-    await EmployeeInformation.update(
-      {
-        leave_balance: updatedLeaveBalance,
-      },
-      { where: { employee_id } }
-    );
-
     const createdRecord = await EmployeeLeavesRecord.create({
       employee_id,
       leave_type_id,
@@ -63,11 +54,7 @@ async function addRecord(req, res) {
       reason,
     });
 
-    const resp = getResponse(
-      createdRecord,
-      200,
-      "Leave Record added and leave balanve updated."
-    );
+    const resp = getResponse(createdRecord, 200, "Leave Record added");
 
     res.status(200).send(resp);
   } catch (err) {
@@ -187,14 +174,31 @@ async function getLeaveRecordsByLeaveID(req, res) {
 async function updateLeaveStatus(req, res) {
   try {
     const leaveID = parseInt(req.params.id);
-    const { status_type_id, reason, user_id } = req.body;
+    const { status_type_id, reason, user_id, employee_id, no_of_days } =
+      req.body;
 
+    // status type id 4 is for rejected leave
     if (status_type_id === 4) {
       LeaveReason.create({
         user_id,
         leave_id: leaveID,
         reason,
       });
+    }
+
+    // status type id 3 is for granted leaves
+    if (status_type_id === 3) {
+      const employee = await EmployeeInformation.findByPk(employee_id);
+
+      const { leave_balance } = employee;
+      const updatedLeaveBalance = leave_balance - no_of_days;
+
+      await EmployeeInformation.update(
+        {
+          leave_balance: updatedLeaveBalance,
+        },
+        { where: { employee_id } }
+      );
     }
 
     await EmployeeLeavesRecord.update(
