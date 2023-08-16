@@ -5,6 +5,9 @@ const {
   getAllReimbursements,
   getReimbursementDetailsByEmpID,
   updateStatus,
+  addMedicalLimits,
+  getMedicalLimits,
+  updateMedicalLimits,
 } = require("../controllers/medicalreimbursement");
 
 const router = express.Router();
@@ -18,5 +21,11 @@ router.get("/list", getAllReimbursements);
 router.get("/empID/:id", getReimbursementDetailsByEmpID);
 
 router.put("/statusUpdate/:id", updateStatus);
+
+router.post("/limits/add", addMedicalLimits);
+
+router.get("/limits/get", getMedicalLimits);
+
+router.put("/limits/update/:id", updateMedicalLimits);
 
 module.exports = router;

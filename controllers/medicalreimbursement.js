@@ -2,6 +2,7 @@ const {
   MedicalReimbursement,
   EmployeeInformation,
   StatusType,
+  MedicalLimit,
 } = require("../models");
 const { getResponse } = require("../utils/valueHelpers");
 
@@ -137,10 +138,67 @@ async function updateStatus(req, res) {
   }
 }
 
+async function addMedicalLimits(req, res) {
+  try {
+    const { ipd_limit, opd_limit } = req.body;
+
+    const createdLimit = await MedicalLimit.create({ ipd_limit, opd_limit });
+
+    const resp = getResponse(createdLimit, 200, "Limits created successfully");
+
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong");
+    console.error(err);
+    res.send(resp);
+  }
+}
+
+async function getMedicalLimits(req, res) {
+  try {
+    const medicalLimits = await MedicalLimit.findAll();
+
+    if (!medicalLimits.length) {
+      const resp = getResponse(null, 404, "Not found");
+      return res.send(resp);
+    }
+
+    const resp = getResponse(medicalLimits);
+
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong");
+    console.error(err);
+    res.send(resp);
+  }
+}
+
+async function updateMedicalLimits(req, res) {
+  try {
+    const limitID = parseInt(req.params.id);
+    const values = req.body;
+
+    const updatedLimits = await MedicalLimit.update(values, {
+      where: { id: limitID },
+    });
+
+    const resp = getResponse(updatedLimits, 200, "Updated successfully");
+
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong");
+    console.error(err);
+    res.send(resp);
+  }
+}
+
 module.exports = {
   addReimbursement,
   getReimbursementByID,
   getAllReimbursements,
   getReimbursementDetailsByEmpID,
   updateStatus,
+  addMedicalLimits,
+  getMedicalLimits,
+  updateMedicalLimits,
 };
