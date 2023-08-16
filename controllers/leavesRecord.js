@@ -3,6 +3,7 @@ const {
   HrUser,
   LeaveReason,
   EmployeeInformation,
+  MedicalLimit,
 } = require("../models");
 const db = require("../models");
 const { QueryTypes } = require("sequelize");
@@ -358,9 +359,17 @@ async function cancelLeaveRequest(req, res) {
 // Cron Job function for resetting employees leave balance
 async function leaveBalanceCronJob() {
   try {
-    // Reset leaves for all employees
+    const medical_limits = await MedicalLimit.findAll();
+
+    const { ipd_limit, opd_limit } = medical_limits[0];
+
+    // Reset leaves and medical limits for all employees
     await EmployeeInformation.update(
-      { leave_balance: TOTAL_LEAVES },
+      {
+        leave_balance: TOTAL_LEAVES,
+        ipd_balance: ipd_limit,
+        opd_balance: opd_limit,
+      },
       { where: {} }
     );
     console.log("Leaves reset for all employees.");

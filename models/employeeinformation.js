@@ -60,6 +60,8 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         defaultValue: TOTAL_LEAVES,
       },
+      ipd_balance: DataTypes.INTEGER,
+      opd_balance: DataTypes.INTEGER,
       currency_type: DataTypes.INTEGER,
       project_manager: DataTypes.BIGINT,
       resignation_date: DataTypes.DATE,

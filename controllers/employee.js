@@ -4,6 +4,7 @@ const {
   EmployeeInformationAudit,
   HrUser,
   EmployeeAllowance,
+  MedicalLimit,
 } = require("../models");
 const db = require("../models");
 const { QueryTypes, Op } = require("sequelize");
@@ -52,6 +53,8 @@ async function addNewEmployee(req, res) {
       company_id,
       basic_salary,
       leave_balance,
+      ipd_balance,
+      opd_balance,
       currency_type,
       project_manager,
       resignation_date,
@@ -80,6 +83,10 @@ async function addNewEmployee(req, res) {
       const resp = getResponse({}, 400, "Employee already exist");
       return res.send(resp);
     }
+
+    const medicalLimits = await MedicalLimit.findAll();
+
+    const { ipd_limit, opd_limit } = medicalLimits[0];
 
     const annualSalary = gross_salary * 12;
     const weeklySalary = annualSalary / 52;
@@ -118,6 +125,8 @@ async function addNewEmployee(req, res) {
       company_id,
       basic_salary,
       leave_balance,
+      ipd_balance: ipd_balance || ipd_limit,
+      opd_balance: opd_balance || opd_limit,
       currency_type,
       project_manager,
       resignation_date,

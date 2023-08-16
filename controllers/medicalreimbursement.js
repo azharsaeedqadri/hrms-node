@@ -21,6 +21,18 @@ async function addReimbursement(req, res) {
       return res.send(resp);
     }
 
+    const employee = await EmployeeInformation.findByPk(employee_id);
+
+    if (reimbursement_type === "IPD" && amount > employee.ipd_balance) {
+      const resp = getResponse(null, 400, "Amount is greater than IPD balance");
+      return res.send(resp);
+    }
+
+    if (reimbursement_type === "OPD" && amount > employee.opd_balance) {
+      const resp = getResponse(null, 400, "Amount is greater than OPD balance");
+      return res.send(resp);
+    }
+
     const addedReimbursement = await MedicalReimbursement.create({
       reimbursement_type,
       amount,
@@ -111,12 +123,28 @@ async function getReimbursementDetailsByEmpID(req, res) {
 async function updateStatus(req, res) {
   try {
     const reimbursementID = parseInt(req.params.id);
-    const { status } = req.body;
+    const { status, type, amount, employee_id } = req.body;
 
     await MedicalReimbursement.update(
       { status },
       { where: { id: reimbursementID } }
     );
+
+    // status 2 is for approved status
+    if (status === 2 && type === "IPD") {
+      const emp = await EmployeeInformation.findByPk(employee_id);
+      const updatedIpdBalance = emp.ipd_balance - amount;
+
+      await EmployeeInformation.update({ ipd_balance: updatedIpdBalance });
+    }
+
+    // status 2 is for approved status
+    if (status === 2 && type === "OPD") {
+      const emp = await EmployeeInformation.findByPk(employee_id);
+      const updatedOpdBalance = emp.opd_balance - amount;
+
+      await EmployeeInformation.update({ opd_balance: updatedOpdBalance });
+    }
 
     const updatedReimbursement = await MedicalReimbursement.findByPk(
       reimbursementID,

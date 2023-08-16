@@ -19,6 +19,7 @@ const {
   Team,
   Month,
   AllowanceAndDeductionType,
+  MedicalLimit,
 } = require("../models");
 const { HR, TOTAL_LEAVES } = require("../utils/constants");
 const {
@@ -46,6 +47,7 @@ async function getAllDropdownData(req, res) {
       teams,
       months,
       allowanceAndDeductionTypes,
+      medical_limits,
     ] = await Promise.all([
       BankType.findAll({ where: { is_deleted: false } }),
       CurrencyType.findAll({ where: { is_deleted: false } }),
@@ -64,6 +66,7 @@ async function getAllDropdownData(req, res) {
       Team.findAll({ where: { is_deleted: false } }),
       Month.findAll({ where: { is_deleted: false } }),
       AllowanceAndDeductionType.findAll({ where: { is_deleted: false } }),
+      MedicalLimit.findAll(),
     ]);
 
     const dropdownsData = {
@@ -85,6 +88,7 @@ async function getAllDropdownData(req, res) {
       months,
       allowanceAndDeductionTypes,
       total_leaves_count: TOTAL_LEAVES,
+      medical_limits,
     };
 
     const resp = getResponse(dropdownsData, 200, "Lists fetched successfully");
