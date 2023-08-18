@@ -16,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
       models.EmployeeLeavesRecord.belongsTo(models.EmployeeInformation, {
         foreignKey: "employee_id",
       });
+
+      models.EmployeeInformation.belongsTo(models.Designation, {
+        foreignKey: "designation_id",
+      });
+
     }
   }
   EmployeeInformation.init(

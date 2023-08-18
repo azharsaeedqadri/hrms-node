@@ -9,6 +9,9 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      models.Designation.hasMany(models.EmployeeInformation, {
+        foreignKey: "employee_id",
+      });
     }
   }
   Designation.init(

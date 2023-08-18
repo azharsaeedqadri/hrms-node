@@ -1,7 +1,8 @@
-const { EmployeeAllowance, EmployeeDeduction } = require("../models");
+const { EmployeeAllowance, EmployeeDeduction, EmployeeInformation, Allowance, Designation } = require("../models");
 const {
   getResponse, calculateOvertime, calculateLeaveEncashments, calculateEPF,
 } = require("../utils/valueHelpers");
+const { toCamelCase } = require("../utils/stringHelpers");
 const { Sequelize, QueryTypes, Op } = require("sequelize");
 const {
   GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
@@ -104,14 +105,8 @@ async function getAllPayrollRecords(req, res) {
     var startDate = new Date(allowanceDate.getFullYear(), allowanceDate.getMonth(), 1);
     var endDate = new Date(allowanceDate.getFullYear(), allowanceDate.getMonth() + 1, 0);
 
+    //allowances
     const payrollAdjustmentsAllowances = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
-      {
-        replacements: { startDate: startDate, endDate: endDate },
-        type: QueryTypes.SELECT,
-      });
-
-
-    const payrollAdjustmentsDeductions = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
       {
         replacements: { startDate: startDate, endDate: endDate },
         type: QueryTypes.SELECT,
@@ -124,13 +119,6 @@ async function getAllPayrollRecords(req, res) {
       return acc;
     }, {});
 
-    const deductionsGroupedData = payrollAdjustmentsDeductions.reduce((acc, obj) => {
-      const key = `${obj.deduction_id}-${obj.name}`;
-      const { deduction_id, ...rest } = obj;
-      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
-      return acc;
-    }, {});
-
     const allowancesArray = Object.entries(allowancesGroupedData).map(([id, values]) => (
       {
         id: parseInt(id, 10),
@@ -139,6 +127,20 @@ async function getAllPayrollRecords(req, res) {
         type: 0,
         employees: values.map((val) => ({ id: val.employee_id, name: `${val.first_name} ${val.last_name}` }))//.join(', '),
       }));
+
+    //deductions    
+    const payrollAdjustmentsDeductions = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
+      {
+        replacements: { startDate: startDate, endDate: endDate },
+        type: QueryTypes.SELECT,
+      });
+
+    const deductionsGroupedData = payrollAdjustmentsDeductions.reduce((acc, obj) => {
+      const key = `${obj.deduction_id}-${obj.name}`;
+      const { deduction_id, ...rest } = obj;
+      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
+      return acc;
+    }, {});
 
     const deductionsArray = Object.entries(deductionsGroupedData).map(([id, values]) => (
       {
@@ -448,11 +450,323 @@ async function addEPF(req, res) {
   }
 }
 
+async function calculatePayroll(req, res) {
+  try {
+
+    if (!req.body || !req.body.date) {
+      throw new Error('Request body is missing required parameters.');
+    }
+
+    const request = req.body;
+
+    var allowanceDate = new Date(request.date);
+
+    var startDate = new Date(allowanceDate.getFullYear(), allowanceDate.getMonth(), 1);
+    var endDate = new Date(allowanceDate.getFullYear(), allowanceDate.getMonth() + 1, 0);
+
+    //Get All active employees from db
+    var filterOptions = {
+      is_active: {
+        [Op.eq]: true
+      },
+      is_deleted: {
+        [Op.eq]: false,
+      }
+    };
+
+    var employeeList = await EmployeeInformation.findAll({
+      where: filterOptions,
+      include: Designation
+    });
+
+    filterOptions = {
+      is_part_of_gross_salary: {
+        [Op.eq]: false
+      },
+      allowance_type: {
+        [Op.eq]: 8,
+      }
+    };
+
+    var recurringAllowances = await Allowance.findAll({
+      where: filterOptions
+    });
+
+    //gross salary allowances        
+    var grossSalaryAllowances = await EmployeeAllowance.findAll({
+      include: [
+        {
+          model: Allowance,
+          where: { is_part_of_gross_salary: { [Op.eq]: true } }
+        }
+      ]
+    });
+
+    filterOptions = {
+      is_part_of_gross_salary: {
+        [Op.eq]: true
+      }
+    };
+
+    var grossSalaryAllowancesByTpe = await Allowance.findAll({
+      where: filterOptions
+    });
+
+    var gsAllowancesGrouped = grossSalaryAllowances.reduce((acc, item) => {
+      const key = `${item.employee_id}`;
+      const { employee_id, ...rest } = item;
+      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
+      return acc;
+    }, {});
+
+    gsAllowancesGrouped = Object.values(gsAllowancesGrouped);
+
+    // const gsAllowancesResult = gsAllowancesGroupedData.reduce((accumulator, current) => {
+    //   const empId = current.employee_id;
+    //   const amount = current.amount;
+
+    //   if (!accumulator[empId]) {
+    //     accumulator[empId] = { empId, sum: 0 };
+    //   }
+
+    //   accumulator[empId].sum += amount;
+
+    //   return accumulator;
+    // }, {});
+
+    // const gsAllowancesAgreegate = Object.values(gsAllowancesResult);
+
+    //allowances
+
+    //TODO: add filter to get allowances not part of gross salary
+    // const payrollAdjustmentsAllowances = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
+    //   {
+    //     replacements: { startDate: startDate, endDate: endDate },
+    //     type: QueryTypes.SELECT,
+    //   });
+
+    filterOptions = {
+      createdAt: {
+        [Op.between]: [startDate, endDate],
+      }
+    };
+
+    var payrollAdjustmentsAllowances = await EmployeeAllowance.findAll({
+      where: filterOptions,
+      include: [
+        {
+          model: Allowance,
+          where: { is_part_of_gross_salary: { [Op.eq]: false } }
+        }
+      ]
+    });
+
+    var prAllowancesGrouped = payrollAdjustmentsAllowances.reduce((acc, item) => {
+      const key = `${item.employee_id}`;
+      const { employee_id, ...rest } = item;
+      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
+      return acc;
+    }, {});
+
+    prAllowancesGrouped = Object.values(prAllowancesGrouped);
+
+    var empAllowancesAgreegate = payrollAdjustmentsAllowances.reduce((accumulator, current) => {
+      const empId = current.employee_id;
+      const amount = current.amount;
+
+      if (!accumulator[empId]) {
+        accumulator[empId] = { empId, sum: 0 };
+      }
+
+      accumulator[empId].sum += amount;
+
+      return accumulator;
+    }, {});
+
+    empAllowancesAgreegate = Object.values(empAllowancesAgreegate);
+
+    //deductions
+    const payrollAdjustmentsDeductions = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
+      {
+        replacements: { startDate: startDate, endDate: endDate },
+        type: QueryTypes.SELECT,
+      });
+
+    const empDeductionsResult = payrollAdjustmentsDeductions.reduce((accumulator, current) => {
+      const empId = current.employee_id;
+      const amount = current.amount;
+
+      if (!accumulator[empId]) {
+        accumulator[empId] = { empId, sum: 0 };
+      }
+
+      accumulator[empId].sum += amount;
+
+      return accumulator;
+    }, {});
+
+    const empDeductionsAgreegate = Object.values(empDeductionsResult);
+
+    const employeesPayroll = employeeList.map((item, index) => {
+
+      var selectedEmpGsAllowances = gsAllowancesGrouped.filter(obj => obj.employee_id == item.employee_id)[0] || grossSalaryAllowancesByTpe;
+      var empGsAllowances = selectedEmpGsAllowances.reduce((accumulator, currentObject) => {
+        const keyToAdd = toCamelCase(currentObject.name);
+        accumulator[keyToAdd] = currentObject?.percentage * item.gross_salary / 100 || 0;
+        return accumulator;
+      }, {});
+
+      var selectedEmpPrAllowances = prAllowancesGrouped.filter(obj => obj.employee_id == item.employee_id)[0] || recurringAllowances;
+      const empAllowances = selectedEmpPrAllowances.reduce((accumulator, currentObject) => {
+        const keyToAdd = toCamelCase(currentObject.name);
+        accumulator[keyToAdd] = currentObject?.amount || 0;
+        return accumulator;
+      }, {});
+
+      var totalAllowances = empAllowancesAgreegate.filter(obj => obj.empId == item.employee_id)[0]?.sum || 0;
+      var totalDeductions = empDeductionsAgreegate.filter(obj => obj.empId == item.employee_id)[0]?.sum || 0;
+      var taxableSalary = 0;  //TODO: calculate as per tax slabs
+
+
+
+      const empObj = {
+        srNo: index + 1,
+        particulars: {
+          id: item.employee_id,
+          empId: item.employee_code,
+          employeeName: `${item.first_name} ${item.last_name}`,
+          joiningDate: item.joining_date,
+          designation: item.Designation.name
+        },
+        grossSalary: empGsAllowances,
+        grossSalaryAmount: item.gross_salary,
+        allowances: empAllowances,
+        epfEmployeer: 0,
+        totalGSAllowances: item.gross_salary + totalAllowances,
+        taxableSalary: taxableSalary,
+        deductions: null,
+        epfEmployees: 0,
+        reimbursement: 0,
+        netSalary: item.gross_salary + totalAllowances - totalDeductions - taxableSalary,
+        payslip: null
+      }
+
+      return empObj;
+    });
+
+    if (!employeesPayroll.length) {
+      const resp = getResponse(null, 404, "Not Found");
+      return res.send(resp);
+    }
+
+    const resp = getResponse(employeesPayroll, 200, "Success");
+
+    res.send(resp);
+
+  } catch (err) {
+    var message = err.message ? err.message : "Something went wrong while calculating payroll";
+    const resp = getResponse(null, 400, message);
+    console.error(err);
+    res.send(resp);
+  }
+
+}
+
+async function getEmployeePayrollDetails(req, res) {
+  try {
+
+    if (!req.body || !req.body.date || !req.body.employeeId) {
+      throw new Error('Request body is missing required parameters.');
+    }
+
+    const request = req.body;
+
+    var allowanceDate = new Date(request.date)
+
+    var startDate = new Date(allowanceDate.getFullYear(), allowanceDate.getMonth(), 1);
+    var endDate = new Date(allowanceDate.getFullYear(), allowanceDate.getMonth() + 1, 0);
+
+    const payrollAdjustmentsAllowances = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
+      {
+        replacements: { startDate: startDate, endDate: endDate },
+        type: QueryTypes.SELECT,
+      });
+
+
+    const payrollAdjustmentsDeductions = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
+      {
+        replacements: { startDate: startDate, endDate: endDate },
+        type: QueryTypes.SELECT,
+      });
+
+
+    const allowancesGroupedData = payrollAdjustmentsAllowances.reduce((acc, obj) => {
+      const key = `${obj.allowance_id}-${obj.name}`;
+      const { allowance_id, ...rest } = obj;
+      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
+      return acc;
+    }, {});
+
+    const deductionsGroupedData = payrollAdjustmentsDeductions.reduce((acc, obj) => {
+      const key = `${obj.deduction_id}-${obj.name}`;
+      const { deduction_id, ...rest } = obj;
+      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
+      return acc;
+    }, {});
+
+    const allowancesArray = Object.entries(allowancesGroupedData).map(([id, values]) => (
+      {
+        id: parseInt(id, 10),
+        name: values[0].name,
+        amount: values[0].amount,
+        type: 0,
+        employees: values.map((val) => ({ id: val.employee_id, name: `${val.first_name} ${val.last_name}` }))//.join(', '),
+      }));
+
+    const deductionsArray = Object.entries(deductionsGroupedData).map(([id, values]) => (
+      {
+        id: parseInt(id, 10),
+        name: values[0].name,
+        amount: values[0].amount,
+        type: 1,
+        employees: values.map((val) => ({ id: val.employee_id, name: `${val.first_name} ${val.last_name}` }))//.join(', '),
+      }));
+
+    allowancesArray.push(...deductionsArray);
+
+    if (!allowancesArray.length) {
+      const resp = getResponse(null, 404, "Not Found");
+      return res.send(resp);
+    }
+
+
+    // const appDir = dirname(require.main.filename);
+    // var filePath = path.join(appDir, 'templates', "payroll-template.xlsx"); //path.join(__dirname, 'start.html');
+
+    var buffer = await generateExcelBinaryFile("payroll-template.xlsx", allowancesArray);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats');
+    res.setHeader("Content-Disposition", "attachment; filename=" + "Draft-Payroll-August-2023.xlsx");
+    //res.end(result, 'binary');
+
+    //const resp = getResponse(allowancesArray, 200, "Success");
+
+    res.send(buffer);
+  } catch (err) {
+    var message = err.message ? err.message : "Something went wrong while deleting the records";
+    const resp = getResponse(null, 400, message);
+    console.error(err);
+    res.send(resp);
+  }
+
+}
+
 module.exports = {
   addPayrollItem,
   getAllPayrollRecords,
   removePayrollItem,
   addOvertime,
   addEncashedLeaves,
-  addEPF
+  addEPF,
+  calculatePayroll
 };

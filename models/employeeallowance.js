@@ -14,6 +14,11 @@ module.exports = (sequelize, DataTypes) => {
       models.EmployeeInformation.belongsTo(models.EmployeeAllowance, {
         foreignKey: "employee_id",
       });
+
+      models.EmployeeAllowance.belongsTo(models.Allowance, {
+        foreignKey: "allowance_id",
+      });
+
       // define association here
     }
   }

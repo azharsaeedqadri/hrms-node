@@ -187,7 +187,7 @@ async function getMedicalLimits(req, res) {
     const medicalLimits = await MedicalLimit.findAll();
 
     if (!medicalLimits.length) {
-      const resp = getResponse(null, 404, "Not found");
+      const resp = getResponse([], 404, "Not found");
       return res.send(resp);
     }
 
