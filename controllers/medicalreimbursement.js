@@ -143,7 +143,10 @@ async function updateStatus(req, res) {
       const emp = await EmployeeInformation.findByPk(employee_id);
       const updatedOpdBalance = emp.opd_balance - amount;
 
-      await EmployeeInformation.update({ opd_balance: updatedOpdBalance });
+      await EmployeeInformation.update(
+        { opd_balance: updatedOpdBalance },
+        { where: { employee_id } }
+      );
     }
 
     const updatedReimbursement = await MedicalReimbursement.findByPk(
