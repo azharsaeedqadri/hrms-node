@@ -21,6 +21,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "designation_id",
       });
 
+      models.EmployeeInformation.belongsTo(models.BankType, {
+        foreignKey: "bank_id",
+      });
+
     }
   }
   EmployeeInformation.init(

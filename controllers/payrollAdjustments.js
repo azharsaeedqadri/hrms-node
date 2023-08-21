@@ -1,4 +1,4 @@
-const { EmployeeAllowance, EmployeeDeduction, EmployeeInformation, Allowance, Designation } = require("../models");
+const { EmployeeAllowance, EmployeeDeduction, EmployeeInformation, Allowance, Deduction, Designation, BankType, TaxSlab } = require("../models");
 const {
   getResponse, calculateOvertime, calculateLeaveEncashments, calculateEPF,
 } = require("../utils/valueHelpers");
@@ -482,10 +482,10 @@ async function calculatePayroll(req, res) {
     filterOptions = {
       is_part_of_gross_salary: {
         [Op.eq]: false
-      },
-      allowance_type: {
-        [Op.eq]: 8,
       }
+      // allowance_type: {
+      //   [Op.eq]: 8,
+      // }
     };
 
     var recurringAllowances = await Allowance.findAll({
@@ -512,39 +512,7 @@ async function calculatePayroll(req, res) {
       where: filterOptions
     });
 
-    var gsAllowancesGrouped = grossSalaryAllowances.reduce((acc, item) => {
-      const key = `${item.employee_id}`;
-      const { employee_id, ...rest } = item;
-      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
-      return acc;
-    }, {});
-
-    gsAllowancesGrouped = Object.values(gsAllowancesGrouped);
-
-    // const gsAllowancesResult = gsAllowancesGroupedData.reduce((accumulator, current) => {
-    //   const empId = current.employee_id;
-    //   const amount = current.amount;
-
-    //   if (!accumulator[empId]) {
-    //     accumulator[empId] = { empId, sum: 0 };
-    //   }
-
-    //   accumulator[empId].sum += amount;
-
-    //   return accumulator;
-    // }, {});
-
-    // const gsAllowancesAgreegate = Object.values(gsAllowancesResult);
-
     //allowances
-
-    //TODO: add filter to get allowances not part of gross salary
-    // const payrollAdjustmentsAllowances = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
-    //   {
-    //     replacements: { startDate: startDate, endDate: endDate },
-    //     type: QueryTypes.SELECT,
-    //   });
-
     filterOptions = {
       createdAt: {
         [Op.between]: [startDate, endDate],
@@ -561,73 +529,92 @@ async function calculatePayroll(req, res) {
       ]
     });
 
-    var prAllowancesGrouped = payrollAdjustmentsAllowances.reduce((acc, item) => {
-      const key = `${item.employee_id}`;
-      const { employee_id, ...rest } = item;
-      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
-      return acc;
-    }, {});
-
-    prAllowancesGrouped = Object.values(prAllowancesGrouped);
-
-    var empAllowancesAgreegate = payrollAdjustmentsAllowances.reduce((accumulator, current) => {
-      const empId = current.employee_id;
-      const amount = current.amount;
-
-      if (!accumulator[empId]) {
-        accumulator[empId] = { empId, sum: 0 };
-      }
-
-      accumulator[empId].sum += amount;
-
-      return accumulator;
-    }, {});
-
-    empAllowancesAgreegate = Object.values(empAllowancesAgreegate);
-
     //deductions
-    const payrollAdjustmentsDeductions = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
-      {
-        replacements: { startDate: startDate, endDate: endDate },
-        type: QueryTypes.SELECT,
-      });
-
-    const empDeductionsResult = payrollAdjustmentsDeductions.reduce((accumulator, current) => {
-      const empId = current.employee_id;
-      const amount = current.amount;
-
-      if (!accumulator[empId]) {
-        accumulator[empId] = { empId, sum: 0 };
+    filterOptions = {
+      createdAt: {
+        [Op.between]: [startDate, endDate],
       }
+    };
 
-      accumulator[empId].sum += amount;
+    var payrollAdjustmentsDeductions = await EmployeeDeduction.findAll({
+      where: filterOptions,
+      include: [
+        {
+          model: Deduction
+        }
+      ]
+    });
 
-      return accumulator;
-    }, {});
+    const taxSlabs = await TaxSlab.findAll();
 
-    const empDeductionsAgreegate = Object.values(empDeductionsResult);
+    // ***
+    // *** iterate all employees and calculate allowances/deduction and taxable salary
+    // *** 
 
     const employeesPayroll = employeeList.map((item, index) => {
 
-      var selectedEmpGsAllowances = gsAllowancesGrouped.filter(obj => obj.employee_id == item.employee_id)[0] || grossSalaryAllowancesByTpe;
+      //gsallowance
+      var selectedEmpGsAllowances = grossSalaryAllowances.filter(obj => {
+        return obj.dataValues.employee_id == item.employee_id
+      });
       var empGsAllowances = selectedEmpGsAllowances.reduce((accumulator, currentObject) => {
-        const keyToAdd = toCamelCase(currentObject.name);
-        accumulator[keyToAdd] = currentObject?.percentage * item.gross_salary / 100 || 0;
+        const keyToAdd = toCamelCase(currentObject.Allowance.name);
+        accumulator[keyToAdd] = currentObject.dataValues.percentage * item.gross_salary / 100 || 0;
         return accumulator;
       }, {});
 
-      var selectedEmpPrAllowances = prAllowancesGrouped.filter(obj => obj.employee_id == item.employee_id)[0] || recurringAllowances;
+      //allowances
+      var selectedEmpPrAllowances = payrollAdjustmentsAllowances.filter(obj => {
+        return obj.dataValues.employee_id == item.employee_id
+      });
+
       const empAllowances = selectedEmpPrAllowances.reduce((accumulator, currentObject) => {
-        const keyToAdd = toCamelCase(currentObject.name);
-        accumulator[keyToAdd] = currentObject?.amount || 0;
+        const keyToAdd = toCamelCase(currentObject.Allowance.name);
+        accumulator[keyToAdd] = currentObject.dataValues.amount || 0;
         return accumulator;
       }, {});
 
-      var totalAllowances = empAllowancesAgreegate.filter(obj => obj.empId == item.employee_id)[0]?.sum || 0;
-      var totalDeductions = empDeductionsAgreegate.filter(obj => obj.empId == item.employee_id)[0]?.sum || 0;
-      var taxableSalary = 0;  //TODO: calculate as per tax slabs
+      var empAllowancesAgreegate = selectedEmpPrAllowances.reduce((accumulator, current) => {
+        if (!accumulator['sum']) {
+          accumulator['sum'] = { value: 0 };
+        }
+        accumulator['sum'].value += current.amount;
+        return accumulator;
+      }, {});
 
+      //deductions
+      var selectedEmpPrDeductions = payrollAdjustmentsDeductions.filter(obj => {
+        return obj.dataValues.employee_id == item.employee_id
+      });
 
+      const empDeductions = selectedEmpPrDeductions.reduce((accumulator, currentObject) => {
+        const keyToAdd = toCamelCase(currentObject.Deduction.name);
+        accumulator[keyToAdd] = currentObject.dataValues.amount || 0;
+        return accumulator;
+      }, {});
+
+      var empDeductionsAgreegate = selectedEmpPrDeductions.reduce((accumulator, current) => {
+        if (!accumulator['sum']) {
+          accumulator['sum'] = { value: 0 };
+        }
+        accumulator['sum'].value += current.amount;
+        return accumulator;
+      }, {});
+
+      //tax slab
+      var selectedSlab = taxSlabs.filter(obj => {
+        var result = (item.gross_salary >= obj.dataValues.minimum_income) && (item.gross_salary <= obj.dataValues.maximum_income)
+        return result
+      })[0];
+
+      var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
+      var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
+      var taxableSalary = () => {
+        var exceedAmount = item.gross_salary - selectedSlab.minimum_income;
+        var percentAmount = exceedAmount * selectedSlab.percentage / 100;
+        var result = selectedSlab.minimum_income > 0 ? percentAmount + selectedSlab.additional_amount : 0;
+        return result;
+      };
 
       const empObj = {
         srNo: index + 1,
@@ -643,15 +630,23 @@ async function calculatePayroll(req, res) {
         allowances: empAllowances,
         epfEmployeer: 0,
         totalGSAllowances: item.gross_salary + totalAllowances,
-        taxableSalary: taxableSalary,
-        deductions: null,
+        taxableSalary: taxableSalary(),
+        deductions: empDeductions,
         epfEmployees: 0,
         reimbursement: 0,
-        netSalary: item.gross_salary + totalAllowances - totalDeductions - taxableSalary,
-        payslip: null
+        netSalary: item.gross_salary + totalAllowances - totalDeductions - taxableSalary(),
+        payslip: {
+          titleOfAccount: item.acc_title,
+          accountNo: item.acc_number,
+          bankName: null,
+          branchCode: null,
+          iban: null,
+          emailAddress: item.office_email
+        }
       }
 
       return empObj;
+
     });
 
     if (!employeesPayroll.length) {

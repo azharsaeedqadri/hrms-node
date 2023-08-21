@@ -8,6 +8,11 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
+
+      models.EmployeeDeduction.belongsTo(models.Deduction, {
+        foreignKey: "deduction_id",
+      });
+
       // define association here
     }
   }
