@@ -320,7 +320,7 @@ FROM [employee_allowances] AS [EmployeeAllowance]
 left join allowances ON allowances.allowance_id = [EmployeeAllowance].allowance_id
 LEFT JOIN employee_information ON [EmployeeAllowance].employee_id = employee_information.employee_id
 WHERE cast([EmployeeAllowance].[createdAt] as date) between :startDate 
-and :endDate`;
+and :endDate and allowances.is_part_of_gross_salary = 0`;
 
 const GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS = `SELECT
 [EmployeeDeduction].[id],

@@ -29,11 +29,31 @@ async function addPayrollItem(req, res) {
 
         if (requestObj.type === 0) {
 
-          await EmployeeAllowance.create({
+          //findOrCreate
+          filterOptions = {
+            createdAt: {
+              [Op.between]: [startDate, endDate],
+            },
             allowance_id: adjustment.id,
             employee_id: employeeId,
-            amount: Math.round(adjustment.amount),
+          };
+
+          var empPRAllowance = await EmployeeAllowance.findAll({
+            where: filterOptions,
+            include: [
+              {
+                model: Allowance,
+                where: { is_part_of_gross_salary: { [Op.eq]: false } }
+              }
+            ]
           });
+
+          if (empPRAllowance.length === 0)
+            await EmployeeAllowance.create({
+              allowance_id: adjustment.id,
+              employee_id: employeeId,
+              amount: Math.round(adjustment.amount),
+            });
 
           //const t = await sequelize.transaction();
 
@@ -66,11 +86,26 @@ async function addPayrollItem(req, res) {
           // })();
         }
         else if (requestObj.type === 1) {
-          await EmployeeDeduction.create({
-            deduction_id: adjustment.id,
+
+          filterOptions = {
+            createdAt: {
+              [Op.between]: [startDate, endDate],
+            },
+            allowance_id: adjustment.id,
             employee_id: employeeId,
-            amount: Math.round(adjustment.amount),
+          };
+
+          var empPRDeduction = await EmployeeDeduction.findAll({
+            where: filterOptions
           });
+
+          if (empPRDeduction.length === 0) {
+            await EmployeeDeduction.create({
+              deduction_id: adjustment.id,
+              employee_id: employeeId,
+              amount: Math.round(adjustment.amount),
+            });
+          }
         }
       };
     };
@@ -602,19 +637,15 @@ async function calculatePayroll(req, res) {
       }, {});
 
       //tax slab
-      var selectedSlab = taxSlabs.filter(obj => {
+      var taxSlab = taxSlabs.filter(obj => {
         var result = (item.gross_salary >= obj.dataValues.minimum_income) && (item.gross_salary <= obj.dataValues.maximum_income)
         return result
       })[0];
 
+
       var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
       var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
-      var taxableSalary = () => {
-        var exceedAmount = item.gross_salary - selectedSlab.minimum_income;
-        var percentAmount = exceedAmount * selectedSlab.percentage / 100;
-        var result = selectedSlab.minimum_income > 0 ? percentAmount + selectedSlab.additional_amount : 0;
-        return result;
-      };
+      var taxableSalary = calculateTaxableSalary(taxSlab, item.gross_salary);
 
       const empObj = {
         srNo: index + 1,
@@ -630,11 +661,11 @@ async function calculatePayroll(req, res) {
         allowances: empAllowances,
         epfEmployeer: 0,
         totalGSAllowances: item.gross_salary + totalAllowances,
-        taxableSalary: taxableSalary(),
+        taxableSalary: taxableSalary,
         deductions: empDeductions,
         epfEmployees: 0,
         reimbursement: 0,
-        netSalary: item.gross_salary + totalAllowances - totalDeductions - taxableSalary(),
+        netSalary: item.gross_salary + totalAllowances - totalDeductions - taxableSalary,
         payslip: {
           titleOfAccount: item.acc_title,
           accountNo: item.acc_number,
@@ -664,97 +695,206 @@ async function calculatePayroll(req, res) {
     console.error(err);
     res.send(resp);
   }
-
 }
+
 
 async function getEmployeePayrollDetails(req, res) {
   try {
 
-    if (!req.body || !req.body.date || !req.body.employeeId) {
+    if (!req.body || !req.body.date) {
       throw new Error('Request body is missing required parameters.');
     }
 
     const request = req.body;
 
-    var allowanceDate = new Date(request.date)
+    var allowanceDate = new Date(request.date);
 
     var startDate = new Date(allowanceDate.getFullYear(), allowanceDate.getMonth(), 1);
     var endDate = new Date(allowanceDate.getFullYear(), allowanceDate.getMonth() + 1, 0);
 
-    const payrollAdjustmentsAllowances = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
-      {
-        replacements: { startDate: startDate, endDate: endDate },
-        type: QueryTypes.SELECT,
-      });
 
+    var empId = request.employeeId;
 
-    const payrollAdjustmentsDeductions = await db.sequelize.query(GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
-      {
-        replacements: { startDate: startDate, endDate: endDate },
-        type: QueryTypes.SELECT,
-      });
+    //Get the active employee from db
+    var filterOptions = {
+      employee_id: { [Op.eq]: empId },
+      is_active: {
+        [Op.eq]: true
+      },
+      is_deleted: {
+        [Op.eq]: false,
+      }
+    };
 
+    var selectedEmployee = await EmployeeInformation.findAll({
+      where: filterOptions,
+      include: Designation
+    });
 
-    const allowancesGroupedData = payrollAdjustmentsAllowances.reduce((acc, obj) => {
-      const key = `${obj.allowance_id}-${obj.name}`;
-      const { allowance_id, ...rest } = obj;
-      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
-      return acc;
-    }, {});
+    selectedEmployee = selectedEmployee[0];
 
-    const deductionsGroupedData = payrollAdjustmentsDeductions.reduce((acc, obj) => {
-      const key = `${obj.deduction_id}-${obj.name}`;
-      const { deduction_id, ...rest } = obj;
-      acc[key] = acc[key] ? [...acc[key], rest] : [rest];
-      return acc;
-    }, {});
-
-    const allowancesArray = Object.entries(allowancesGroupedData).map(([id, values]) => (
-      {
-        id: parseInt(id, 10),
-        name: values[0].name,
-        amount: values[0].amount,
-        type: 0,
-        employees: values.map((val) => ({ id: val.employee_id, name: `${val.first_name} ${val.last_name}` }))//.join(', '),
-      }));
-
-    const deductionsArray = Object.entries(deductionsGroupedData).map(([id, values]) => (
-      {
-        id: parseInt(id, 10),
-        name: values[0].name,
-        amount: values[0].amount,
-        type: 1,
-        employees: values.map((val) => ({ id: val.employee_id, name: `${val.first_name} ${val.last_name}` }))//.join(', '),
-      }));
-
-    allowancesArray.push(...deductionsArray);
-
-    if (!allowancesArray.length) {
-      const resp = getResponse(null, 404, "Not Found");
+    if (selectedEmployee === undefined || selectedEmployee === null) {
+      const resp = getResponse(null, 400, "Employee not found");
       return res.send(resp);
     }
 
+    selectedEmployee.gross_salary = 1500000;
 
-    // const appDir = dirname(require.main.filename);
-    // var filePath = path.join(appDir, 'templates', "payroll-template.xlsx"); //path.join(__dirname, 'start.html');
+    filterOptions = {
+      is_part_of_gross_salary: {
+        [Op.eq]: false
+      }
+    };
 
-    var buffer = await generateExcelBinaryFile("payroll-template.xlsx", allowancesArray);
+    //gross salary allowances        
+    var grossSalaryAllowances = await EmployeeAllowance.findAll({
+      where: {
+        employee_id: { [Op.eq]: empId },
+      },
+      include: [
+        {
+          model: Allowance,
+          where: { is_part_of_gross_salary: { [Op.eq]: true } }
+        }
+      ]
+    });
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats');
-    res.setHeader("Content-Disposition", "attachment; filename=" + "Draft-Payroll-August-2023.xlsx");
-    //res.end(result, 'binary');
+    //allowances
+    filterOptions = {
+      employee_id: { [Op.eq]: empId },
+      createdAt: {
+        [Op.between]: [startDate, endDate],
+      }
+    };
 
-    //const resp = getResponse(allowancesArray, 200, "Success");
+    var payrollAdjustmentsAllowances = await EmployeeAllowance.findAll({
+      where: filterOptions,
+      include: [
+        {
+          model: Allowance,
+          where: { is_part_of_gross_salary: { [Op.eq]: false } }
+        }
+      ]
+    });
 
-    res.send(buffer);
+    //deductions
+    filterOptions = {
+      employee_id: { [Op.eq]: empId },
+      createdAt: {
+        [Op.between]: [startDate, endDate],
+      }
+    };
+
+    var payrollAdjustmentsDeductions = await EmployeeDeduction.findAll({
+      where: filterOptions,
+      include: [
+        {
+          model: Deduction
+        }
+      ]
+    });
+
+    //gsallowance    
+    var empGsAllowances = grossSalaryAllowances.reduce((accumulator, currentObject) => {
+      const keyToAdd = toCamelCase(currentObject.Allowance.name);
+      accumulator[keyToAdd] = currentObject.dataValues.percentage * selectedEmployee.gross_salary / 100 || 0;
+      return accumulator;
+    }, {});
+
+    //allowances    
+    const empAllowances = payrollAdjustmentsAllowances.reduce((accumulator, currentObject) => {
+      //const keyToAdd = toCamelCase(currentObject.Allowance.name);
+      var allowanceObj = {
+        id: currentObject.allowance_id,
+        name: currentObject.Allowance.name,
+        amount: currentObject.dataValues.amount || 0
+      };
+      accumulator.push(allowanceObj);
+      return accumulator;
+    }, []);
+
+    var empAllowancesAgreegate = payrollAdjustmentsAllowances.reduce((accumulator, current) => {
+      if (!accumulator['sum']) {
+        accumulator['sum'] = { value: 0 };
+      }
+      accumulator['sum'].value += current.amount;
+      return accumulator;
+    }, {});
+
+    //deductions
+    const empDeductions = payrollAdjustmentsDeductions.reduce((accumulator, currentObject) => {
+      const keyToAdd = toCamelCase(currentObject.Deduction.name);
+      accumulator[keyToAdd] = currentObject.dataValues.amount || 0;
+      return accumulator;
+    }, {});
+
+    var empDeductionsAgreegate = payrollAdjustmentsDeductions.reduce((accumulator, current) => {
+      if (!accumulator['sum']) {
+        accumulator['sum'] = { value: 0 };
+      }
+      accumulator['sum'].value += current.amount;
+      return accumulator;
+    }, {});
+
+    //tax slab
+    const taxSlabs = await TaxSlab.findAll();
+
+    var taxSlab = taxSlabs.filter(obj => {
+      var result = (selectedEmployee.gross_salary >= obj.dataValues.minimum_income) && (selectedEmployee.gross_salary <= obj.dataValues.maximum_income)
+      return result
+    })[0];
+
+
+    var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
+    var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
+    var taxableSalary = calculateTaxableSalary(taxSlab, selectedEmployee.gross_salary);
+
+    const employeePayroll = {
+      particulars: {
+        id: selectedEmployee.employee_id,
+        empId: selectedEmployee.employee_code,
+        employeeName: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
+        joiningDate: selectedEmployee.joining_date,
+        designation: selectedEmployee.Designation.name
+      },
+      grossSalary: empGsAllowances,
+      grossSalaryAmount: selectedEmployee.gross_salary,
+      allowances: empAllowances,
+      epfEmployeer: 0,
+      totalGSAllowances: selectedEmployee.gross_salary + totalAllowances,
+      taxableSalary: taxableSalary,
+      deductions: empDeductions,
+      epfEmployees: 0,
+      reimbursement: 0,
+      netSalary: selectedEmployee.gross_salary + totalAllowances - totalDeductions - taxableSalary,
+      payslip: {
+        titleOfAccount: selectedEmployee.acc_title,
+        accountNo: selectedEmployee.acc_number,
+        bankName: null,
+        branchCode: null,
+        iban: null,
+        emailAddress: selectedEmployee.office_email
+      }
+    }
+
+    const resp = getResponse(employeePayroll, 200, "Success");
+
+    res.send(resp);
+
   } catch (err) {
-    var message = err.message ? err.message : "Something went wrong while deleting the records";
+    var message = err.message ? err.message : "Something went wrong while calculating payroll";
     const resp = getResponse(null, 400, message);
     console.error(err);
     res.send(resp);
   }
-
 }
+
+const calculateTaxableSalary = (taxSlab, grossSalary) => {
+  var exceedAmount = grossSalary - taxSlab.minimum_income;
+  var percentAmount = exceedAmount * taxSlab.percentage / 100;
+  var result = taxSlab.minimum_income > 0 ? percentAmount + taxSlab.additional_amount : 0;
+  return result;
+};
 
 module.exports = {
   addPayrollItem,
@@ -763,5 +903,6 @@ module.exports = {
   addOvertime,
   addEncashedLeaves,
   addEPF,
-  calculatePayroll
+  calculatePayroll,
+  getEmployeePayrollDetails
 };

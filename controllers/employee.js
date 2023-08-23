@@ -329,7 +329,16 @@ async function editEmployeeInformation(req, res) {
     console.log("Deleting existing employee allowances");
     console.log("=====================================");
 
-    await EmployeeAllowance.destroy({ where: { employee_id: employeeID } });
+    const allowanceIds = allowances.map(obj => obj.allowance_id);
+
+    await EmployeeAllowance.destroy(
+      {
+        where:
+        {
+          employee_id: { [Op.eq]: employeeID },
+          allowance_id: { [Op.or]: allowanceIds }
+        }
+      });
 
     console.log("=====================================");
     console.log("Deleted existing employee allowances");
