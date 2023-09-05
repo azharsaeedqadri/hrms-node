@@ -134,7 +134,38 @@ async function getDashboardData(req, res) {
   }
 }
 
+async function getDashboardDataByEmpID(req, res) {
+  try {
+    const empID = parseInt(req.params.id);
+
+    const [empData, medicalLimits] = await Promise.all([
+      EmployeeInformation.findByPk(empID, {
+        attributes: ["leave_balance", "ipd_balance", "opd_balance"],
+      }),
+      MedicalLimit.findAll(),
+    ]);
+
+    const responseData = {
+      totalLeaves: TOTAL_LEAVES,
+      remainingLeaves: empData.leave_balance,
+      totalIPDLimit: medicalLimits[0].ipd_limit,
+      remainingIPDBalance: empData.ipd_balance,
+      totalOPDLimit: medicalLimits[0].opd_limit,
+      remainingOPDBalance: empData.opd_balance,
+    };
+
+    const resp = getResponse(responseData, 200, "success");
+
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, err);
+    console.error(err);
+    res.send(resp);
+  }
+}
+
 module.exports = {
   getAllDropdownData,
   getDashboardData,
+  getDashboardDataByEmpID,
 };
