@@ -245,6 +245,10 @@ async function getEmployeeByID(req, res) {
       },
     });
 
+    const employeeActivityLogs = await EmployeeInformationAudit.findAll({
+      where: { employee_id: employeeID },
+    });
+
     const statusLogsData = await Promise.all(
       employeeStatusLogs.map(async (emp) => {
         const user = await HrUser.findByPk(emp.updated_by);
@@ -275,6 +279,7 @@ async function getEmployeeByID(req, res) {
       allowances: createdEmployeeAllowances,
       finalizedLeaves: employeeFinalizedLeaveRequests || {},
       statusLogs: statusLogsData || {},
+      activityLogs: employeeActivityLogs,
     };
 
     const resp = getResponse(respData, 200, "Success");
@@ -324,55 +329,6 @@ async function editEmployeeInformation(req, res) {
         employee_id: employeeID,
       },
     });
-
-    console.log("=====================================");
-    console.log("Deleting existing employee allowances");
-    console.log("=====================================");
-
-    const allowanceIds = allowances.map(obj => obj.allowance_id);
-
-    await EmployeeAllowance.destroy(
-      {
-        where:
-        {
-          employee_id: { [Op.eq]: employeeID },
-          allowance_id: { [Op.or]: allowanceIds }
-        }
-      });
-
-    console.log("=====================================");
-    console.log("Deleted existing employee allowances");
-    console.log("=====================================");
-
-    const employeeAllowances = [];
-
-    for (const allowance of allowances) {
-      employeeAllowances.push({
-        employee_id: employeeID,
-        allowance_id: allowance.allowance_id,
-        percentage: allowance.percentage,
-      });
-    }
-
-    console.log("=====================================");
-    console.log("Creating new employee allowances in edit endpoint");
-    console.log("=====================================");
-
-    await EmployeeAllowance.bulkCreate(employeeAllowances);
-
-    console.log("=====================================");
-    console.log("Created new employee allowances in edit endpoint");
-    console.log("=====================================");
-
-    const createdEmployeeAllowances = await db.sequelize.query(
-      GET_CREATED_EMPLOYEE_ALLOWANCES,
-      {
-        type: QueryTypes.SELECT,
-        replacements: {
-          employee_id: employeeID,
-        },
-      }
-    );
 
     const updatedEmployee = await db.sequelize.query(GET_EMPLOYEE_BY_ID, {
       type: QueryTypes.SELECT,
