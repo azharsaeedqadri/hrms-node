@@ -26,15 +26,20 @@ const calculateOvertime = (numberOfHours, grossSalary) => {
 };
 
 //EPF stands for Employee Provident Fund
-const calculateEPF = (basicSalary) => {
-  // epf is 8.334% of the basic salary
-  const epfPercentage = 8.334 / 100;
-
-  return basicSalary * epfPercentage;
+const calculateEPF = (basicSalary, epfPercentage) => {
+  const percent = epfPercentage / 100;
+  return basicSalary * percent;
 };
 
 const calculateLeaveEncashments = (leaveBalance, hourlyRate) => {
   return leaveBalance * hourlyRate * 8;
+};
+
+const calculateTaxableSalary = (taxSlab, grossSalary) => {
+  var exceedAmount = grossSalary - taxSlab.minimum_income;
+  var percentAmount = exceedAmount * taxSlab.percentage / 100;
+  var result = taxSlab.minimum_income > 0 ? percentAmount + taxSlab.additional_amount : 0;
+  return result;
 };
 
 module.exports = {
@@ -43,4 +48,5 @@ module.exports = {
   calculateOvertime,
   calculateEPF,
   calculateLeaveEncashments,
+  calculateTaxableSalary
 };

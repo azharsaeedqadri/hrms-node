@@ -31,6 +31,7 @@ module.exports = (sequelize, DataTypes) => {
       reimbursement: DataTypes.INTEGER,
       net_salary: DataTypes.INTEGER,
       payslip: DataTypes.STRING,
+      payroll_date: DataTypes.DATE,
     },
     {
       sequelize,
