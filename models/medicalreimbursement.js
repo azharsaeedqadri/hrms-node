@@ -52,6 +52,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BIGINT,
         allowNull: false,
       },
+      updated_by: DataTypes.STRING,
     },
     {
       sequelize,

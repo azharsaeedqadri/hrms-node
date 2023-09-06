@@ -122,11 +122,14 @@ async function getReimbursementDetailsByEmpID(req, res) {
 
 async function updateStatus(req, res) {
   try {
+    const token = req.header("authorization").split("Bearer ");
+
+    const userID = getUserIDByBearerToken(token[1]);
     const reimbursementID = parseInt(req.params.id);
     const { status, type, amount, employee_id } = req.body;
 
     await MedicalReimbursement.update(
-      { status },
+      { status, updated_by: userID },
       { where: { id: reimbursementID } }
     );
 
