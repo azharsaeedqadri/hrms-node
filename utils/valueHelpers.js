@@ -35,8 +35,8 @@ const calculateLeaveEncashments = (leaveBalance, hourlyRate) => {
   return leaveBalance * hourlyRate * 8;
 };
 
-const calculateTaxableSalary = (taxSlab, grossSalary) => {
-  var exceedAmount = grossSalary - taxSlab.minimum_income;
+const calculateTaxableSalary = (taxSlab, annualGrossSalary) => {
+  var exceedAmount = annualGrossSalary - taxSlab.minimum_income;
   var percentAmount = exceedAmount * taxSlab.percentage / 100;
   var result = taxSlab.minimum_income > 0 ? percentAmount + taxSlab.additional_amount : 0;
   return result;

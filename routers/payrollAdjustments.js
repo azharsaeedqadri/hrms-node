@@ -10,7 +10,7 @@ const {
   runPayroll,
   getEmployeePayrollDetails,
   updateEmployeePayrollDetails,
-  getEmployeePayrollHistory
+  checkPayrollStatus
 } = require("../controllers/payrollAdjustments");
 
 const router = express.Router();
@@ -35,6 +35,7 @@ router.post("/getdetails", getEmployeePayrollDetails);
 
 router.post("/updatedetails", updateEmployeePayrollDetails);
 
-router.post("/history", getEmployeePayrollHistory);
+router.post("/checkstatus", checkPayrollStatus);
+
 
 module.exports = router;

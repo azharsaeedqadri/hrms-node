@@ -813,15 +813,16 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
 
       //tax slab
       var taxSlab = taxSlabs.filter((obj) => {
+        var annualGrossSalary = selectedEmployee.gross_salary * 12;
         var result =
-          item.gross_salary >= obj.dataValues.minimum_income &&
-          item.gross_salary <= obj.dataValues.maximum_income;
+          annualGrossSalary >= obj.dataValues.minimum_income &&
+          annualGrossSalary <= obj.dataValues.maximum_income;
         return result;
       })[0];
 
       var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
       var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
-      var taxableSalary = calculateTaxableSalary(taxSlab, item.gross_salary);
+      var taxableSalary = calculateTaxableSalary(taxSlab, (item.gross_salary * 12));
 
       var currentDate = new Date();
       var monthName = currentDate.toLocaleString("default", { month: "long" });
@@ -1043,10 +1044,11 @@ async function getEmployeePayrollDetails(req, res) {
     //tax slab
     const taxSlabs = await TaxSlab.findAll();
 
+    var annualGrossSalary = selectedEmployee.gross_salary * 12;
     var taxSlab = taxSlabs.filter((obj) => {
       var result =
-        selectedEmployee.gross_salary >= obj.dataValues.minimum_income &&
-        selectedEmployee.gross_salary <= obj.dataValues.maximum_income;
+        annualGrossSalary >= obj.dataValues.minimum_income &&
+        annualGrossSalary <= obj.dataValues.maximum_income;
       return result;
     })[0];
 
@@ -1054,7 +1056,7 @@ async function getEmployeePayrollDetails(req, res) {
     var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
     var taxableSalary = calculateTaxableSalary(
       taxSlab,
-      selectedEmployee.gross_salary
+      (selectedEmployee.gross_salary * 12)
     );
 
     var currentDate = new Date();
@@ -1241,6 +1243,55 @@ async function getEmployeePayrollHistory(req, res) {
   }
 }
 
+async function checkPayrollStatus(req, res) {
+  try {
+    if (!req.body || !req.body.date) {
+      throw new Error("Request body is missing required parameters.");
+    }
+
+    const request = req.body;
+
+    var payrollDate = new Date(request.date);
+
+    var startDate = new Date(
+      payrollDate.getFullYear(),
+      payrollDate.getMonth(),
+      1
+    );
+    var endDate = new Date(
+      payrollDate.getFullYear(),
+      payrollDate.getMonth() + 1,
+      0
+    );
+
+    var filterOptions = {
+      payroll_date: {
+        [Op.between]: [startDate, endDate],
+      },
+    };
+
+    var employeeMonthlyPayroll = await EmployeeMonthlyPayroll.findAll({
+      where: filterOptions
+    });
+
+    var payrollStatus = {
+      PayrollExists: employeeMonthlyPayroll.length > 0 ? true : false,
+      isLocked: employeeMonthlyPayroll[0]?.is_locked ? employeeMonthlyPayroll[0]?.is_locked : false
+    };
+
+    const resp = getResponse(payrollStatus, 200, "Success");
+    res.send(resp);
+
+  } catch (err) {
+    var message = err.message
+      ? err.message
+      : "Something went wrong while checking monthly payroll status";
+    const resp = getResponse(null, 400, message);
+    console.error(err);
+    res.send(resp);
+  }
+}
+
 module.exports = {
   addPayrollItem,
   getAllPayrollRecords,
@@ -1252,5 +1303,6 @@ module.exports = {
   runPayroll,
   getEmployeePayrollDetails,
   updateEmployeePayrollDetails,
-  getEmployeePayrollHistory
+  getEmployeePayrollHistory,
+  checkPayrollStatus
 };

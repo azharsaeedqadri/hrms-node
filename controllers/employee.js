@@ -15,6 +15,7 @@ const {
   GET_EMPLOYEE_BY_ID,
   FINALIZED_LEAVE_RECORDS_BY_EMPLOYEE_ID_QUERY,
   GET_CREATED_EMPLOYEE_ALLOWANCES,
+  EMPLOYEE_ACTIVITY_LOGS_QUERY,
 } = require("../utils/constants");
 const {
   getResponse,
@@ -246,9 +247,13 @@ async function getEmployeeByID(req, res) {
       },
     });
 
-    const employeeActivityLogs = await EmployeeInformationAudit.findAll({
-      where: { employee_id: employeeID },
-    });
+    const employeeActivityLogs = await db.sequelize.query(
+      EMPLOYEE_ACTIVITY_LOGS_QUERY,
+      {
+        type: QueryTypes.SELECT,
+        replacements: { employeeID },
+      }
+    );
 
     const statusLogsData = await Promise.all(
       employeeStatusLogs.map(async (emp) => {

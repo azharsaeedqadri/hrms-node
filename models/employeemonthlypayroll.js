@@ -30,6 +30,7 @@ module.exports = (sequelize, DataTypes) => {
       epf_employee: DataTypes.INTEGER,
       reimbursement: DataTypes.INTEGER,
       net_salary: DataTypes.INTEGER,
+      is_locked: DataTypes.BOOLEAN,
       payslip: DataTypes.STRING,
       payroll_date: DataTypes.DATE,
     },

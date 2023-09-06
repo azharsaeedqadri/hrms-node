@@ -340,6 +340,17 @@ LEFT JOIN employee_information ON [EmployeeDeduction].employee_id = employee_inf
 WHERE cast([EmployeeDeduction].[createdAt] as date) between :startDate
 and :endDate`;
 
+const EMPLOYEE_ACTIVITY_LOGS_QUERY = `SELECT [employee_information_audit].[id] as [actionID]
+,[employee_information_audit].[action_performed] as [actionPerformed]
+,[employee_information_audit].[updated_date] as [performedActionDate]
+,CONCAT([hr_users].[first_name], '', [hr_users].[last_name]) as [updatedBy]
+,[role_types].[name] as [adminRole]
+FROM [HRMS-dev].[dbo].[employee_information_audit]
+LEFT JOIN [hr_users] ON [employee_information_audit].[updated_by] = [hr_users].[user_id]
+LEFT JOIN [role_types] ON [hr_users].[role] = [role_types].[id]
+WHERE [employee_information_audit].[employee_id] = :employeeID
+ORDER BY [employee_information_audit].[updated_date] DESC`;
+
 module.exports = {
   SUPER_ADMIN,
   HR,
@@ -357,4 +368,5 @@ module.exports = {
   GET_CREATED_EMPLOYEE_ALLOWANCES,
   GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
   GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
+  EMPLOYEE_ACTIVITY_LOGS_QUERY,
 };
