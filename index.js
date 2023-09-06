@@ -20,6 +20,7 @@ const epdRouter = require("./routers/employeePayDeduction");
 const taxSlabsRouter = require("./routers/taxSlab");
 const medicalReimbursementRouter = require("./routers/mrdicalReimbursement");
 const payrollAdjustments = require("./routers/payrollAdjustments");
+const designationRouter = require("./routers/designation");
 const { leaveBalanceCronJob } = require("./controllers/leavesRecord");
 
 const app = express();
@@ -52,6 +53,7 @@ app.use("/api/dropdownData", dropdownDataRouter);
 app.use("/api/leaves", leavesRecordRouter);
 app.use("/api/roles", rolesRouter);
 app.use("/api/department", departmentRouter);
+app.use("/api/designation", designationRouter);
 app.use("/api/teams", teamRouter);
 app.use("/api/allowance", allowanceRouter);
 app.use("/api/deduction", deductionRouter);

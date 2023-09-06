@@ -174,6 +174,10 @@ async function getLeaveRecordsByLeaveID(req, res) {
 
 async function updateLeaveStatus(req, res) {
   try {
+    const token = req.header("authorization").split("Bearer ");
+
+    const userID = getUserIDByBearerToken(token[1]);
+
     const leaveID = parseInt(req.params.id);
     const { status_type_id, reason, user_id, employee_id, no_of_days } =
       req.body;
@@ -203,7 +207,7 @@ async function updateLeaveStatus(req, res) {
     }
 
     await EmployeeLeavesRecord.update(
-      { status_type_id },
+      { status_type_id, approved_by: userID },
       { where: { id: leaveID } }
     );
 
