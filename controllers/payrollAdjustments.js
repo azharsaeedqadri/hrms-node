@@ -811,9 +811,16 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
         {}
       );
 
+      var medicalAllowance = selectedEmpGsAllowances.filter((obj) => {
+        return obj.dataValues.Allowance.name.toLowerCase().includes('medical');
+      })[0];
+
+      var medicalAllowanceAmount = (medicalAllowance.dataValues.percentage * item.gross_salary) / 100 ||
+        0;
+      var annualGrossSalary = (item.gross_salary - medicalAllowanceAmount) * 12;
+
       //tax slab
       var taxSlab = taxSlabs.filter((obj) => {
-        var annualGrossSalary = selectedEmployee.gross_salary * 12;
         var result =
           annualGrossSalary >= obj.dataValues.minimum_income &&
           annualGrossSalary <= obj.dataValues.maximum_income;
@@ -822,7 +829,7 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
 
       var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
       var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
-      var taxableSalary = calculateTaxableSalary(taxSlab, (item.gross_salary * 12));
+      var taxableSalary = calculateTaxableSalary(taxSlab, annualGrossSalary);
 
       var currentDate = new Date();
       var monthName = currentDate.toLocaleString("default", { month: "long" });
@@ -1059,9 +1066,8 @@ async function getEmployeePayrollDetails(req, res) {
       (selectedEmployee.gross_salary * 12)
     );
 
-    var currentDate = new Date();
-    var monthName = currentDate.toLocaleString("default", { month: "long" });
-    var payrollDate = `${monthName} ${currentDate.getFullYear()}`;
+    var monthName = endDate.toLocaleString("default", { month: "long" });
+    var payrollDate = `${monthName} ${endDate.getFullYear()}`;
 
     const employeePayroll = {
       particulars: {
