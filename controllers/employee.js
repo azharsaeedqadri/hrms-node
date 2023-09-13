@@ -87,6 +87,15 @@ async function addNewEmployee(req, res) {
       return res.send(resp);
     }
 
+    if (office_email === isAlreadyPresent?.office_email) {
+      const resp = getResponse(
+        null,
+        400,
+        "Employee with this Email already exists"
+      );
+      return res.send(resp);
+    }
+
     const medicalLimits = await MedicalLimit.findAll();
 
     const { ipd_limit, opd_limit } = medicalLimits[0];
@@ -124,7 +133,7 @@ async function addNewEmployee(req, res) {
       salary_type_id,
       current_salary,
       gross_salary,
-      hourly_rate: hourlyRate,
+      hourly_rate: hourlyRate || null,
       company_id,
       basic_salary,
       leave_balance,
@@ -157,6 +166,11 @@ async function addNewEmployee(req, res) {
       },
       include: EmployeeAllowance,
     });
+
+    if (!allowances.length) {
+      const resp = getResponse(addedUser, 201, "Employee added successfully");
+      return res.send(resp);
+    }
 
     const employeeAllowances = [];
 
