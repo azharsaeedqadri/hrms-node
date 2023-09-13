@@ -225,11 +225,13 @@ async function getAllPayrollRecords(req, res) {
       ([id, values]) => ({
         id: parseInt(id, 10),
         name: values[0].name,
-        amount: values[0].amount,
+        amount: 0,
+        percentage: values[0].percentage,
         type: 1,
         employees: values.map((val) => ({
           id: val.employee_id,
           name: `${val.first_name} ${val.last_name}`,
+          amount: val.amount
         })), //.join(', '),
       })
     );
@@ -505,7 +507,8 @@ async function addEPF(req, res) {
       await EmployeeDeduction.create({
         deduction_id: id,
         employee_id: employeeId,
-        amount: Math.round(epfAmount),
+        amount: epfAmount,
+        percentage: percentage
       });
 
       console.log(
@@ -746,6 +749,7 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
       var selectedEmpGsAllowances = grossSalaryAllowances.filter((obj) => {
         return obj.dataValues.employee_id == item.employee_id;
       });
+
       var empGsAllowances = selectedEmpGsAllowances.reduce(
         (accumulator, currentObject) => {
           const keyToAdd = toCamelCase(currentObject.Allowance.name);
@@ -811,15 +815,40 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
         {}
       );
 
-      var medicalAllowance = selectedEmpGsAllowances.filter((obj) => {
-        return obj.dataValues.Allowance.name.toLowerCase().includes('medical');
-      })[0];
+      //tax calc
+      var nonTaxableGsAllowances = selectedEmpGsAllowances.reduce(
+        (accumulator, current) => {
+          if (!accumulator["sum"]) {
+            accumulator["sum"] = { value: 0 };
+          }
 
-      var medicalAllowanceAmount = (medicalAllowance.dataValues.percentage * item.gross_salary) / 100 ||
-        0;
-      var annualGrossSalary = (item.gross_salary - medicalAllowanceAmount) * 12;
+          if (current.Allowance.is_taxable === false)
+            accumulator["sum"].value += (current.percentage * item.gross_salary) / 100 ||
+              0;
+          return accumulator;
+        },
+        {}
+      );
 
-      //tax slab
+      var nonTaxableAllowances = selectedEmpPrAllowances.reduce(
+        (accumulator, current) => {
+          if (!accumulator["sum"]) {
+            accumulator["sum"] = { value: 0 };
+          }
+
+          if (current.Allowance.is_taxable === false)
+            accumulator["sum"].value += current.amount;
+          return accumulator;
+        },
+        {}
+      );
+
+      var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
+      var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
+      var totalGSAllowances = item.gross_salary + totalAllowances;
+      var nonTaxableAmount = nonTaxableGsAllowances.sum.value + nonTaxableAllowances.sum.value;
+      var annualGrossSalary = (totalGSAllowances - nonTaxableAmount) * 12;
+
       var taxSlab = taxSlabs.filter((obj) => {
         var result =
           annualGrossSalary >= obj.dataValues.minimum_income &&
@@ -827,9 +856,11 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
         return result;
       })[0];
 
-      var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
-      var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
-      var taxableSalary = calculateTaxableSalary(taxSlab, annualGrossSalary);
+
+      var annualTaxableSalary = calculateTaxableSalary(taxSlab, annualGrossSalary);
+      var monthlyTaxableSalary = annualTaxableSalary / 12
+      var netSalaryTotal = totalGSAllowances - totalDeductions - monthlyTaxableSalary;
+      //tax calc ends
 
       var currentDate = new Date();
       var monthName = currentDate.toLocaleString("default", { month: "long" });
@@ -849,13 +880,12 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
         grossSalaryAmount: item.gross_salary,
         allowances: empAllowances,
         epfEmployeer: 0,
-        totalGSAllowances: item.gross_salary + totalAllowances,
-        taxableSalary: taxableSalary,
+        totalGSAllowances: totalGSAllowances,
+        taxableSalary: monthlyTaxableSalary,
         deductions: empDeductions,
         epfEmployees: 0,
         reimbursement: 0,
-        netSalary:
-          item.gross_salary + totalAllowances - totalDeductions - taxableSalary,
+        netSalary: netSalaryTotal,
         payslip: {
           titleOfAccount: item.acc_title,
           accountNo: item.acc_number,
@@ -1022,7 +1052,7 @@ async function getEmployeePayrollDetails(req, res) {
     );
 
     //deductions
-    const empDeductions = payrollAdjustmentsDeductions.reduce(
+    var empDeductions = payrollAdjustmentsDeductions.reduce(
       (accumulator, currentObject) => {
         // const keyToAdd = toCamelCase(currentObject.Deduction.name);
         // accumulator[keyToAdd] = currentObject.dataValues.amount || 0;
@@ -1051,7 +1081,40 @@ async function getEmployeePayrollDetails(req, res) {
     //tax slab
     const taxSlabs = await TaxSlab.findAll();
 
-    var annualGrossSalary = selectedEmployee.gross_salary * 12;
+    //tax calc
+    var nonTaxableGsAllowances = grossSalaryAllowances.reduce(
+      (accumulator, current) => {
+        if (!accumulator["sum"]) {
+          accumulator["sum"] = { value: 0 };
+        }
+
+        if (current.Allowance.is_taxable === false)
+          accumulator["sum"].value += (current.percentage * selectedEmployee.gross_salary) / 100 ||
+            0;
+        return accumulator;
+      },
+      {}
+    );
+
+    var nonTaxableAllowances = payrollAdjustmentsAllowances.reduce(
+      (accumulator, current) => {
+        if (!accumulator["sum"]) {
+          accumulator["sum"] = { value: 0 };
+        }
+
+        if (current.Allowance.is_taxable === false)
+          accumulator["sum"].value += current.amount;
+        return accumulator;
+      },
+      {}
+    );
+
+    var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
+    var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
+    var totalGSAllowances = selectedEmployee.gross_salary + totalAllowances;
+    var nonTaxableAmount = nonTaxableGsAllowances.sum.value + nonTaxableAllowances.sum.value;
+    var annualGrossSalary = (totalGSAllowances - nonTaxableAmount) * 12;
+
     var taxSlab = taxSlabs.filter((obj) => {
       var result =
         annualGrossSalary >= obj.dataValues.minimum_income &&
@@ -1059,12 +1122,11 @@ async function getEmployeePayrollDetails(req, res) {
       return result;
     })[0];
 
-    var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
-    var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
-    var taxableSalary = calculateTaxableSalary(
-      taxSlab,
-      (selectedEmployee.gross_salary * 12)
-    );
+
+    var annualTaxableSalary = calculateTaxableSalary(taxSlab, annualGrossSalary);
+    var monthlyTaxableSalary = annualTaxableSalary / 12
+    var netSalaryTotal = totalGSAllowances - totalDeductions - monthlyTaxableSalary;
+    //tax calc ends
 
     var monthName = endDate.toLocaleString("default", { month: "long" });
     var payrollDate = `${monthName} ${endDate.getFullYear()}`;
@@ -1081,16 +1143,12 @@ async function getEmployeePayrollDetails(req, res) {
       grossSalaryAmount: selectedEmployee.gross_salary,
       allowances: Array.isArray(empAllowances) ? empAllowances : [],
       epfEmployeer: 0,
-      totalGSAllowances: selectedEmployee.gross_salary + totalAllowances,
-      taxableSalary: taxableSalary,
+      totalGSAllowances: totalGSAllowances,
+      taxableSalary: monthlyTaxableSalary,
       deductions: Array.isArray(empDeductions) ? empDeductions : [],
       epfEmployees: 0,
       reimbursement: 0,
-      netSalary:
-        selectedEmployee.gross_salary +
-        totalAllowances -
-        totalDeductions -
-        taxableSalary,
+      netSalary: netSalaryTotal,
       payslip: {
         titleOfAccount: selectedEmployee.acc_title,
         accountNo: selectedEmployee.acc_number,
@@ -1271,6 +1329,59 @@ async function checkPayrollStatus(req, res) {
     );
 
     var filterOptions = {
+      is_active: {
+        [Op.eq]: true,
+      },
+      is_deleted: {
+        [Op.eq]: false,
+      },
+    };
+
+    var employeeList = await EmployeeInformation.findAll({
+      where: filterOptions,
+      include: [
+        {
+          model: EmployeeAllowance,
+          include: [
+            {
+              model: Allowance,
+              where: { is_part_of_gross_salary: { [Op.eq]: true } },
+            }
+          ]
+        }
+      ]
+    });
+
+    var errors = employeeList.reduce((acc, emp) => {
+      var props = [];
+      Object.entries(emp.dataValues).map(([key, value]) => {
+        if (key === "gross_salary" && value === null || value === undefined) {
+          key = key.replace(/_/g, ' ');
+          var prop = key.replace(/(?:^|\s)\w/g, function (match) {
+            return match.toUpperCase();
+          });
+          props.push(prop.trim());
+        }
+        if (key === "EmployeeAllowances" && !value.length) {
+          var prop = key.replace(/([A-Z])/g, " $1", function (match) {
+            return match.charAt(0).toUpperCase() + match.slice(1);
+          });
+          props.push(prop.trim());
+        }
+      });
+
+      if (props.length) {
+        var err = {
+          id: emp.employee_id,
+          name: `${emp.first_name} ${emp.last_name}`,
+          properties: props
+        }
+        acc.push(err);
+      }
+      return acc;
+    }, []);
+
+    var filterOptions = {
       payroll_date: {
         [Op.between]: [startDate, endDate],
       },
@@ -1282,7 +1393,8 @@ async function checkPayrollStatus(req, res) {
 
     var payrollStatus = {
       PayrollExists: employeeMonthlyPayroll.length > 0 ? true : false,
-      isLocked: employeeMonthlyPayroll[0]?.is_locked ? employeeMonthlyPayroll[0]?.is_locked : false
+      isLocked: employeeMonthlyPayroll[0]?.is_locked ? employeeMonthlyPayroll[0]?.is_locked : false,
+      errors: errors
     };
 
     const resp = getResponse(payrollStatus, 200, "Success");

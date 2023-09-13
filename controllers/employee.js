@@ -205,7 +205,22 @@ async function getAllEmployees(req, res) {
       return res.status(404).send(resp);
     }
 
-    const resp = getResponse(employeesList, 200, "Success");
+    var updatedEmployeesList = await Promise.all(employeesList.map(async emp => {
+
+      const createdEmployeeAllowances = await db.sequelize.query(
+        GET_CREATED_EMPLOYEE_ALLOWANCES,
+        {
+          type: QueryTypes.SELECT,
+          replacements: {
+            employee_id: emp.employee_id,
+          },
+        }
+      );
+
+      return { ...emp, allowances: createdEmployeeAllowances };
+    }));
+
+    const resp = getResponse(updatedEmployeesList, 200, "Success");
 
     res.status(200).send(resp);
   } catch (err) {

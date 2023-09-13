@@ -25,6 +25,9 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "bank_id",
       });
 
+      models.EmployeeInformation.hasMany(models.EmployeeAllowance, {
+        foreignKey: "employee_id",
+      });
     }
   }
   EmployeeInformation.init(
