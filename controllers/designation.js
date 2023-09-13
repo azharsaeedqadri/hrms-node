@@ -23,7 +23,7 @@ async function addDesignation(req, res) {
 
       const updatedRecord = Designation.findOne({ where: { name } });
 
-      const resp = getResponse(updatedRecord, 200, "Record added successfully");
+      const resp = getResponse(updatedRecord, 200, "Record Already Exists");
       return res.send(resp);
     }
 
