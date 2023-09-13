@@ -352,6 +352,19 @@ WHERE [employee_information_audit].[employee_id] = :employeeID
 AND [employee_information_audit].[action_performed] != 'Employee "Status" Updated'
 ORDER BY [employee_information_audit].[updated_date] DESC`;
 
+const EMPLOYEE_ACTIVITY_LOGS_MOBILE_QUERY = `SELECT [employee_information_audit].[id],
+[employee_information_audit].[action_performed],
+[employee_information_audit].[updated_date],
+CONCAT([hr_users].[first_name], '', [hr_users].[last_name]) as [updatedBy],
+[role_types].[name] as [adminRole]
+FROM [employee_information_audit]
+LEFT JOIN [hr_users] ON [employee_information_audit].[updated_by] = [hr_users].[user_id]
+LEFT JOIN [role_types] ON [hr_users].[role] = [role_types].[id]
+WHERE [employee_information_audit].[employee_id] = :employeeID
+AND [employee_information_audit].[action_performed] = 'Employee "Leave Status" Updated'
+OR [employee_information_audit].[action_performed] = 'Employee "Medical Reimbursement Status" Updated'
+ORDER BY [employee_information_audit].[updated_date] DESC`;
+
 module.exports = {
   SUPER_ADMIN,
   HR,
@@ -370,4 +383,5 @@ module.exports = {
   GET_ALL_PAYROLLADJUSTMENT_ALLOWANCES,
   GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
   EMPLOYEE_ACTIVITY_LOGS_QUERY,
+  EMPLOYEE_ACTIVITY_LOGS_MOBILE_QUERY,
 };

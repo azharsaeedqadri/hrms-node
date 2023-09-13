@@ -16,6 +16,7 @@ const {
   FINALIZED_LEAVE_RECORDS_BY_EMPLOYEE_ID_QUERY,
   GET_CREATED_EMPLOYEE_ALLOWANCES,
   EMPLOYEE_ACTIVITY_LOGS_QUERY,
+  EMPLOYEE_ACTIVITY_LOGS_MOBILE_QUERY,
 } = require("../utils/constants");
 const {
   getResponse,
@@ -518,6 +519,32 @@ async function employeeListForCalendar(req, res) {
   }
 }
 
+async function getEmployeeLogsForMobile(req, res) {
+  try {
+    const employeeID = parseInt(req.params.id);
+
+    const activityLogs = await db.sequelize.query(
+      EMPLOYEE_ACTIVITY_LOGS_MOBILE_QUERY,
+      {
+        type: QueryTypes.SELECT,
+        replacements: { employeeID },
+      }
+    );
+
+    if (!activityLogs.length) {
+      const resp = getResponse(null, 404, "No Logs Found");
+      return res.send(resp);
+    }
+
+    const resp = getResponse(activityLogs, 200, "success");
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong");
+    console.error(err);
+    res.send(resp);
+  }
+}
+
 module.exports = {
   addNewEmployee,
   getAllEmployees,
@@ -525,4 +552,5 @@ module.exports = {
   editEmployeeInformation,
   updateEmployeeStatus,
   employeeListForCalendar,
+  getEmployeeLogsForMobile,
 };
