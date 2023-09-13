@@ -348,7 +348,8 @@ const EMPLOYEE_ACTIVITY_LOGS_QUERY = `SELECT [employee_information_audit].[id] a
 FROM [HRMS-dev].[dbo].[employee_information_audit]
 LEFT JOIN [hr_users] ON [employee_information_audit].[updated_by] = [hr_users].[user_id]
 LEFT JOIN [role_types] ON [hr_users].[role] = [role_types].[id]
-WHERE [employee_information_audit].[employee_id] = :employeeID
+WHERE [employee_information_audit].[employee_id] = :employeeID 
+AND [employee_information_audit].[action_performed] != 'Employee "Status" Updated'
 ORDER BY [employee_information_audit].[updated_date] DESC`;
 
 module.exports = {

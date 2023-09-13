@@ -205,20 +205,21 @@ async function getAllEmployees(req, res) {
       return res.status(404).send(resp);
     }
 
-    var updatedEmployeesList = await Promise.all(employeesList.map(async emp => {
+    var updatedEmployeesList = await Promise.all(
+      employeesList.map(async (emp) => {
+        const createdEmployeeAllowances = await db.sequelize.query(
+          GET_CREATED_EMPLOYEE_ALLOWANCES,
+          {
+            type: QueryTypes.SELECT,
+            replacements: {
+              employee_id: emp.employee_id,
+            },
+          }
+        );
 
-      const createdEmployeeAllowances = await db.sequelize.query(
-        GET_CREATED_EMPLOYEE_ALLOWANCES,
-        {
-          type: QueryTypes.SELECT,
-          replacements: {
-            employee_id: emp.employee_id,
-          },
-        }
-      );
-
-      return { ...emp, allowances: createdEmployeeAllowances };
-    }));
+        return { ...emp, allowances: createdEmployeeAllowances };
+      })
+    );
 
     const resp = getResponse(updatedEmployeesList, 200, "Success");
 
@@ -258,7 +259,7 @@ async function getEmployeeByID(req, res) {
     const employeeStatusLogs = await EmployeeInformationAudit.findAll({
       where: {
         employee_id: employeeID,
-        action_performed: "employee status updated",
+        action_performed: `Employee "Status" Updated`,
       },
     });
 
