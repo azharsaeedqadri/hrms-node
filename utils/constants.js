@@ -356,10 +356,13 @@ const EMPLOYEE_ACTIVITY_LOGS_MOBILE_QUERY = `SELECT [employee_information_audit]
 [employee_information_audit].[action_performed],
 [employee_information_audit].[updated_date],
 CONCAT([hr_users].[first_name], '', [hr_users].[last_name]) as [updatedBy],
-[role_types].[name] as [adminRole]
+[role_types].[name] as [adminRole],
+[status_types].[name] as currentStatus
 FROM [employee_information_audit]
 LEFT JOIN [hr_users] ON [employee_information_audit].[updated_by] = [hr_users].[user_id]
 LEFT JOIN [role_types] ON [hr_users].[role] = [role_types].[id]
+LEFT JOIN [employee_leaves_record] ON [employee_information_audit].[employee_id] = [employee_leaves_record].[employee_id]
+LEFT JOIN [status_types] ON [employee_leaves_record].[status_type_id] = [status_types].[id]
 WHERE [employee_information_audit].[employee_id] = :employeeID
 AND [employee_information_audit].[action_performed] = 'Employee "Leave Status" Updated'
 OR [employee_information_audit].[action_performed] = 'Employee "Medical Reimbursement Status" Updated'
