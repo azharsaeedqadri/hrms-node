@@ -4,8 +4,10 @@ const {
   EmployeeInformationAudit,
   HrUser,
   EmployeeAllowance,
+  Allowance,
   MedicalLimit,
   EmployeeMonthlyPayroll,
+  TaxSlab
 } = require("../models");
 const db = require("../models");
 const { QueryTypes, Op } = require("sequelize");
@@ -21,6 +23,7 @@ const {
 const {
   getResponse,
   getUserIDByBearerToken,
+  calculateAnnualTax
 } = require("../utils/valueHelpers");
 
 async function addNewEmployee(req, res) {
@@ -326,6 +329,58 @@ async function getEmployeeByID(req, res) {
       where: filterOptions,
     });
 
+    const taxSlabs = await TaxSlab.findAll();
+
+    var grossSalaryAllowances = await EmployeeAllowance.findAll({
+      where: {
+        employee_id: { [Op.eq]: employee[0].employee_id },
+      },
+      include: [
+        {
+          model: Allowance,
+          where: { is_part_of_gross_salary: { [Op.eq]: true } },
+        },
+      ],
+    });
+
+    var nonTaxableGsAllowances = grossSalaryAllowances.reduce(
+      (accumulator, current) => {
+        if (!accumulator["sum"]) {
+          accumulator["sum"] = { value: 0 };
+        }
+
+        if (current.Allowance.is_taxable === false)
+          accumulator["sum"].value += (current.percentage * employee[0].gross_salary) / 100 ||
+            0;
+        return accumulator;
+      },
+      {}
+    );
+
+    var nonTaxableAmount = (nonTaxableGsAllowances?.sum?.value || 0)
+    var annualGrossSalary = (employee[0].gross_salary - nonTaxableAmount) * 12;
+
+    var taxSlab = taxSlabs.filter((obj) => {
+      var result =
+        annualGrossSalary >= obj.dataValues.minimum_income &&
+        annualGrossSalary <= obj.dataValues.maximum_income;
+      return result;
+    })[0];
+
+    var annualTaxableSalary = calculateAnnualTax(taxSlab, annualGrossSalary);
+    var monthlyTaxableSalary = annualTaxableSalary / 12;
+
+    const date = new Date(`July 1, ${new Date().getFullYear()}`);
+    const endDate = new Date(`June 30, ${new Date().getFullYear() + 1}`);
+    var remainingMonths = 0;
+    while (date <= endDate) {
+      if (date.getMonth() === new Date().getMonth()) {
+        remainingMonths = endDate.getMonth() - date.getMonth() + 12 * (endDate.getFullYear() - date.getFullYear())
+        break;
+      }
+      date.setMonth(date.getMonth() + 1);
+    }
+
     const respData = {
       ...employee[0],
       allowances: createdEmployeeAllowances,
@@ -333,13 +388,18 @@ async function getEmployeeByID(req, res) {
       statusLogs: statusLogsData || {},
       activityLogs: employeeActivityLogs,
       payrollHistory: employeePayrollHistory || [],
+      tax: {
+        annualTax: Math.round(annualTaxableSalary * 100) / 100,
+        monthlyTax: Math.round(monthlyTaxableSalary * 100) / 100,
+        remainingFiscalYearMonths: remainingMonths
+      }
     };
 
     const resp = getResponse(respData, 200, "Success");
 
     res.send(resp);
   } catch (err) {
-    const resp = getResponse(null, 400, err);
+    const resp = getResponse(null, 400, "Something went wrong");
     res.send(resp);
   }
 }

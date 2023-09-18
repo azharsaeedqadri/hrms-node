@@ -5,6 +5,7 @@ const {
   Allowance,
   Deduction,
   Designation,
+  SalaryType,
   BankType,
   TaxSlab,
   EmployeeMonthlyPayroll
@@ -14,7 +15,7 @@ const {
   calculateOvertime,
   calculateLeaveEncashments,
   calculateEPF,
-  calculateTaxableSalary,
+  calculateAnnualTax,
 } = require("../utils/valueHelpers");
 const { toCamelCase } = require("../utils/stringHelpers");
 const { Sequelize, QueryTypes, Op } = require("sequelize");
@@ -575,9 +576,7 @@ async function calculatePayroll(req, res) {
 
     res.send(resp);
   } catch (err) {
-    var message = err.message
-      ? err.message
-      : "Something went wrong while calculating payroll";
+    var message = "Something went wrong while calculating payroll";
     const resp = getResponse(null, 400, message);
     console.error(err);
     res.send(resp);
@@ -753,9 +752,9 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
       var empGsAllowances = selectedEmpGsAllowances.reduce(
         (accumulator, currentObject) => {
           const keyToAdd = toCamelCase(currentObject.Allowance.name);
-          accumulator[keyToAdd] =
-            (currentObject.dataValues.percentage * item.gross_salary) / 100 ||
-            0;
+          var grossAmount = (currentObject.dataValues.percentage * item.gross_salary) / 100 || 0
+          var amount = Math.round(grossAmount * 100) / 100;
+          accumulator[keyToAdd] = amount;
           return accumulator;
         },
         {}
@@ -846,7 +845,7 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
       var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
       var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
       var totalGSAllowances = item.gross_salary + totalAllowances;
-      var nonTaxableAmount = nonTaxableGsAllowances.sum.value + nonTaxableAllowances.sum.value;
+      var nonTaxableAmount = (nonTaxableGsAllowances?.sum?.value || 0) + (nonTaxableAllowances?.sum?.value || 0);
       var annualGrossSalary = (totalGSAllowances - nonTaxableAmount) * 12;
 
       var taxSlab = taxSlabs.filter((obj) => {
@@ -857,7 +856,7 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
       })[0];
 
 
-      var annualTaxableSalary = calculateTaxableSalary(taxSlab, annualGrossSalary);
+      var annualTaxableSalary = calculateAnnualTax(taxSlab, annualGrossSalary);
       var monthlyTaxableSalary = annualTaxableSalary / 12
       var netSalaryTotal = totalGSAllowances - totalDeductions - monthlyTaxableSalary;
       //tax calc ends
@@ -874,18 +873,19 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
           employeeName: `${item.first_name} ${item.last_name}`,
           joiningDate: item.joining_date,
           designation: item.Designation.name,
-          photo: item.photo
+          photo: item.photo,
+          cinc: item.cnic_number
         },
         grossSalary: empGsAllowances,
         grossSalaryAmount: item.gross_salary,
         allowances: empAllowances,
         epfEmployeer: 0,
         totalGSAllowances: totalGSAllowances,
-        taxableSalary: monthlyTaxableSalary,
+        taxableSalary: Math.round(monthlyTaxableSalary * 100) / 100,
         deductions: empDeductions,
         epfEmployees: 0,
         reimbursement: 0,
-        netSalary: netSalaryTotal,
+        netSalary: Math.round(netSalaryTotal * 100) / 100,
         payslip: {
           titleOfAccount: item.acc_title,
           accountNo: item.acc_number,
@@ -948,7 +948,16 @@ async function getEmployeePayrollDetails(req, res) {
 
     var selectedEmployee = await EmployeeInformation.findAll({
       where: filterOptions,
-      include: Designation,
+      include: [{
+        model: Designation
+      },
+      {
+        model: SalaryType
+      },
+      {
+        model: BankType
+      }
+      ]
     });
 
     selectedEmployee = selectedEmployee[0];
@@ -1016,10 +1025,9 @@ async function getEmployeePayrollDetails(req, res) {
     var empGsAllowances = grossSalaryAllowances.reduce(
       (accumulator, currentObject) => {
         const keyToAdd = toCamelCase(currentObject.Allowance.name);
-        accumulator[keyToAdd] =
-          (currentObject.dataValues.percentage *
-            selectedEmployee.gross_salary) /
-          100 || 0;
+        var grossAmount = (currentObject.dataValues.percentage * selectedEmployee.gross_salary) / 100 || 0;
+        var amount = Math.round(grossAmount * 100) / 100;
+        accumulator[keyToAdd] = amount;
         return accumulator;
       },
       {}
@@ -1112,7 +1120,7 @@ async function getEmployeePayrollDetails(req, res) {
     var totalAllowances = empAllowancesAgreegate.sum?.value || 0;
     var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
     var totalGSAllowances = selectedEmployee.gross_salary + totalAllowances;
-    var nonTaxableAmount = nonTaxableGsAllowances.sum.value + nonTaxableAllowances.sum.value;
+    var nonTaxableAmount = (nonTaxableGsAllowances?.sum?.value || 0) + (nonTaxableAllowances?.sum?.value || 0);
     var annualGrossSalary = (totalGSAllowances - nonTaxableAmount) * 12;
 
     var taxSlab = taxSlabs.filter((obj) => {
@@ -1123,8 +1131,8 @@ async function getEmployeePayrollDetails(req, res) {
     })[0];
 
 
-    var annualTaxableSalary = calculateTaxableSalary(taxSlab, annualGrossSalary);
-    var monthlyTaxableSalary = annualTaxableSalary / 12
+    var annualTaxableSalary = calculateAnnualTax(taxSlab, annualGrossSalary);
+    var monthlyTaxableSalary = annualTaxableSalary / 12;
     var netSalaryTotal = totalGSAllowances - totalDeductions - monthlyTaxableSalary;
     //tax calc ends
 
@@ -1138,21 +1146,23 @@ async function getEmployeePayrollDetails(req, res) {
         employeeName: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
         joiningDate: selectedEmployee.joining_date,
         designation: selectedEmployee.Designation.name,
+        cnic: selectedEmployee.cnic_number
       },
       grossSalary: empGsAllowances,
       grossSalaryAmount: selectedEmployee.gross_salary,
       allowances: Array.isArray(empAllowances) ? empAllowances : [],
       epfEmployeer: 0,
       totalGSAllowances: totalGSAllowances,
-      taxableSalary: monthlyTaxableSalary,
+      taxableSalary: Math.round(monthlyTaxableSalary * 100) / 100,
       deductions: Array.isArray(empDeductions) ? empDeductions : [],
       epfEmployees: 0,
       reimbursement: 0,
-      netSalary: netSalaryTotal,
+      netSalary: Math.round(netSalaryTotal * 100) / 100,
+      paymentMode: selectedEmployee.SalaryType.name,
       payslip: {
         titleOfAccount: selectedEmployee.acc_title,
         accountNo: selectedEmployee.acc_number,
-        bankName: null,
+        bankName: selectedEmployee.BankType.name,
         branchCode: null,
         iban: null,
         emailAddress: selectedEmployee.office_email,
@@ -1164,9 +1174,7 @@ async function getEmployeePayrollDetails(req, res) {
 
     res.send(resp);
   } catch (err) {
-    var message = err.message
-      ? err.message
-      : "Something went wrong while calculating payroll";
+    var message = "Something went wrong";
     const resp = getResponse(null, 400, message);
     console.error(err);
     res.send(resp);
@@ -1254,53 +1262,7 @@ async function updateEmployeePayrollDetails(req, res) {
 
     res.send(resp);
   } catch (err) {
-    var message = err.message
-      ? err.message
-      : "Something went wrong while updating the records";
-    const resp = getResponse(null, 400, message);
-    console.error(err);
-    res.send(resp);
-  }
-}
-
-async function getEmployeePayrollHistory(req, res) {
-  try {
-    if (!req.body || !req.body.employeeId) {
-      throw new Error("Request body is missing required parameters.");
-    }
-
-    const request = req.body;
-
-    var empId = request.employeeId;
-
-    var filterOptions = {
-      employee_id: { [Op.eq]: empId },
-    };
-
-    var employeePayrollHistory = await EmployeeMonthlyPayroll.findAll({
-      where: filterOptions
-    });
-
-    if (!employeePayrollHistory) {
-      const resp = getResponse(null, 400, "Employee payroll history not found");
-      return res.send(resp);
-    }
-
-    let updatedPayrollHistory = employeePayrollHistory.map(payroll => {
-      var currentDate = new Date(payroll.payroll_date);
-      var monthName = currentDate.toLocaleString("default", { month: "long" });
-      var payrollDate = `${monthName} ${currentDate.getFullYear()}`;
-
-      return { ...payroll.dataValues, payroll_date: payrollDate };
-    });
-
-    const resp = getResponse(updatedPayrollHistory, 200, "Success");
-
-    res.send(resp);
-  } catch (err) {
-    var message = err.message
-      ? err.message
-      : "Something went wrong while getting payroll history";
+    var message = "Something went wrong";
     const resp = getResponse(null, 400, message);
     console.error(err);
     res.send(resp);
@@ -1355,7 +1317,7 @@ async function checkPayrollStatus(req, res) {
     var errors = employeeList.reduce((acc, emp) => {
       var props = [];
       Object.entries(emp.dataValues).map(([key, value]) => {
-        if (key === "gross_salary" && value === null || value === undefined) {
+        if (key === "gross_salary" && value === null || value === undefined || value === 0) {
           key = key.replace(/_/g, ' ');
           var prop = key.replace(/(?:^|\s)\w/g, function (match) {
             return match.toUpperCase();
@@ -1373,6 +1335,7 @@ async function checkPayrollStatus(req, res) {
       if (props.length) {
         var err = {
           id: emp.employee_id,
+          code: emp.employee_code,
           name: `${emp.first_name} ${emp.last_name}`,
           properties: props
         }
@@ -1380,6 +1343,14 @@ async function checkPayrollStatus(req, res) {
       }
       return acc;
     }, []);
+
+    const taxSlabs = await TaxSlab.findAll();
+
+    if (!taxSlabs.length) {
+      errors.push({
+        message: "Tax Slabs are not defined"
+      });
+    }
 
     var filterOptions = {
       payroll_date: {
@@ -1401,9 +1372,7 @@ async function checkPayrollStatus(req, res) {
     res.send(resp);
 
   } catch (err) {
-    var message = err.message
-      ? err.message
-      : "Something went wrong while checking monthly payroll status";
+    var message = "Something went wrong";
     const resp = getResponse(null, 400, message);
     console.error(err);
     res.send(resp);
@@ -1421,6 +1390,5 @@ module.exports = {
   runPayroll,
   getEmployeePayrollDetails,
   updateEmployeePayrollDetails,
-  getEmployeePayrollHistory,
   checkPayrollStatus
 };

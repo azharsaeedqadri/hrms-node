@@ -35,11 +35,11 @@ const calculateLeaveEncashments = (leaveBalance, hourlyRate) => {
   return leaveBalance * hourlyRate * 8;
 };
 
-const calculateTaxableSalary = (taxSlab, annualGrossSalary) => {
+const calculateAnnualTax = (taxSlab, annualGrossSalary) => {
   var exceedAmount = annualGrossSalary - taxSlab.minimum_income;
   var percentAmount = exceedAmount * taxSlab.percentage / 100;
-  var result = taxSlab.minimum_income > 0 ? percentAmount + taxSlab.additional_amount : 0;
-  return result;
+  var annualTax = taxSlab.minimum_income > 0 ? percentAmount + taxSlab.additional_amount : 0;
+  return annualTax;
 };
 
 module.exports = {
@@ -48,5 +48,5 @@ module.exports = {
   calculateOvertime,
   calculateEPF,
   calculateLeaveEncashments,
-  calculateTaxableSalary
+  calculateAnnualTax
 };
