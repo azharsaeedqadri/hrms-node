@@ -6,7 +6,6 @@ const Sequelize = require("sequelize");
 const process = require("process");
 const basename = path.basename(__filename);
 
-require("dotenv");
 const db = {};
 
 console.log("DB_NAME: ", process.env.DB_NAME);
