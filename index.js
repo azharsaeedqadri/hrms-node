@@ -1,8 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const cron = require("node-cron");
-const fs = require("fs");
-const https = require("https");
 
 const userRouter = require("./routers/user");
 const employeeRouter = require("./routers/employee");
@@ -34,14 +32,6 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-const key = fs.readFileSync("./private.key");
-const cert = fs.readFileSync("./certificate.crt");
-
-const creds = {
-  key,
-  cert,
-};
-
 app.use("/api/user", userRouter);
 app.use("/api/employee", employeeRouter);
 app.use("/api/dropdownData", dropdownDataRouter);
@@ -69,6 +59,3 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
-const httpsServer = https.createServer(creds, app);
-httpsServer.listen(8443);
