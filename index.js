@@ -43,10 +43,6 @@ const creds = {
   cert,
 };
 
-// app.get('/.well-known/pki-validation/A3470B7162E2954CAE3D59BE33AAB854.txt',(req,res)=>{
-//      res.sendFile('/home/ec2-user/workspace/HRMIS-node/A3470B7162E2954CAE3D59BE33AAB854.txt')
-// })
-
 app.use("/api/user", userRouter);
 app.use("/api/employee", employeeRouter);
 app.use("/api/dropdownData", dropdownDataRouter);
