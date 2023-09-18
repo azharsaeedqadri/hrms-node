@@ -295,6 +295,10 @@ async function getEmployeeByID(req, res) {
           updated_by: `${user.first_name} ${user.last_name}`,
           role: user.role === 2 ? "HR Manager" : "Project Manager",
           active_status: emp.is_active,
+          resignation_date: emp.resignation_date,
+          resignation_reason: emp.resignation_reason,
+          rejoining_date: emp.rejoining_date,
+          rejoining_reason: emp.rejoining_reason,
         };
 
         return transformedData;
@@ -450,7 +454,14 @@ async function editEmployeeInformation(req, res) {
 
 async function updateEmployeeStatus(req, res) {
   try {
-    const { employee_id, is_active, rejoining_date } = req.body;
+    const {
+      employee_id,
+      is_active,
+      rejoining_date,
+      resignation_date,
+      rejoining_reason,
+      resignation_reason,
+    } = req.body;
 
     const token = req.header("authorization").split("Bearer ");
 
@@ -467,9 +478,17 @@ async function updateEmployeeStatus(req, res) {
     }
 
     // Set rejoining date only if we change status from Inactive -> Active
-    let data = { is_active, updatedBy };
+    let data = { is_active, resignation_reason, rejoining_reason, updatedBy };
+
     if (is_active === true) {
       data["rejoining_date"] = rejoining_date;
+      data["rejoining_reason"] = rejoining_reason;
+    }
+
+    // Set resignation date only if we change status from Active -> Inactive
+    if (is_active === false) {
+      data["resignation_date"] = resignation_date;
+      data["resignation_reason"] = resignation_reason;
     }
 
     // Update record
