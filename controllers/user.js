@@ -5,7 +5,7 @@ const {
   getResponse,
   getUserIDByBearerToken,
 } = require("../utils/valueHelpers");
-const { DEVELOPER } = require("../utils/constants");
+const { DEVELOPER, SUPER_ADMIN } = require("../utils/constants");
 
 //util
 const getToken = (user) => {
@@ -20,10 +20,12 @@ const getToken = (user) => {
 async function updateAdminPassword(req, res) {
   try {
     const { oldPassword, newPassword } = req.body;
+
     if (newPassword.trim() === "") {
       const resp = getResponse({}, 400, "Password is required");
       return res.send(resp);
     }
+
     const token = req.header("authorization").split("Bearer ");
     const userID = getUserIDByBearerToken(token[1]);
     const user = await HrUser.findByPk(userID);
@@ -103,6 +105,20 @@ async function updateAdminInfo(req, res) {
 
 async function getAllUsers(req, res) {
   try {
+    const token = req.header("authorization").split("Bearer ");
+    const userID = getUserIDByBearerToken(token[1]);
+
+    const user = await HrUser.findByPk(userID);
+
+    if (user.role !== SUPER_ADMIN) {
+      const resp = getResponse(
+        null,
+        400,
+        "Only Super admin can see the list of all users."
+      );
+      return res.send(resp);
+    }
+
     const users = await HrUser.findAll();
 
     if (!users.length) {
@@ -119,6 +135,19 @@ async function getAllUsers(req, res) {
 async function addUser(req, res) {
   try {
     const { username, password, first_name, last_name, role } = req.body;
+
+    const token = req.header("authorization").split("Bearer ");
+    const userID = getUserIDByBearerToken(token[1]);
+
+    const adminUser = await HrUser.findByPk(userID);
+
+    if (adminUser.role !== SUPER_ADMIN) {
+      const resp = getResponse(
+        null,
+        400,
+        "Only Super Admin can add a User for Admin Portal."
+      );
+    }
 
     if (
       username.trim() === "" ||
@@ -144,7 +173,7 @@ async function addUser(req, res) {
       last_name,
       role,
       password: hashedPassword,
-      created_by: "HR",
+      created_by: "Super Admin",
     });
 
     const {
