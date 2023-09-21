@@ -20,6 +20,7 @@ const {
   Month,
   AllowanceAndDeductionType,
   MedicalLimit,
+  MedicalReimbursement,
 } = require("../models");
 const { HR, TOTAL_LEAVES } = require("../utils/constants");
 const {
@@ -108,21 +109,35 @@ async function getDashboardData(req, res) {
 
     const adminUser = await HrUser.findByPk(userID);
 
-    const [employeeInformation, pendingLeavesPM, pendingLeavesHR] =
-      await Promise.all([
-        EmployeeInformation.findAll({ where: { is_active: true } }),
-        EmployeeLeavesRecord.findAll({ where: { status_type_id: 1 } }),
-        EmployeeLeavesRecord.findAll({ where: { status_type_id: 2 } }),
-      ]);
+    const [
+      employeeInformation,
+      pendingLeavesPM,
+      pendingLeavesHR,
+      pendingMedicalClaims,
+      departmentsCount,
+    ] = await Promise.all([
+      EmployeeInformation.findAll({ where: { is_active: true } }),
+      // status 1 is for pending
+      EmployeeLeavesRecord.findAll({ where: { status_type_id: 1 } }),
+      // status 2 is for approved
+      EmployeeLeavesRecord.findAll({ where: { status_type_id: 2 } }),
+      // status 1 is for pending status
+      MedicalReimbursement.findAll({ where: { status: 1 } }),
+      Department.findAll({ where: { is_deleted: false } }),
+    ]);
 
     const totalEmployees = employeeInformation.length || 0;
     const totalPendingLeavesHR = pendingLeavesHR.length || 0;
     const totalPendingLeavesPM = pendingLeavesPM.length || 0;
+    const totalPendingMedicalClaims = pendingMedicalClaims.length || 0;
+    const totalDepartments = departmentsCount.length || 0;
 
     const dashboardData = {
       totalEmployees,
       pendingLeaves:
         adminUser.role === HR ? totalPendingLeavesHR : totalPendingLeavesPM,
+      totalPendingMedicalClaims,
+      totalDepartments,
     };
 
     const resp = getResponse(dashboardData, 200, "Lists fetched successfully");
@@ -130,6 +145,7 @@ async function getDashboardData(req, res) {
     return res.status(200).send(resp);
   } catch (err) {
     const resp = getResponse(null, 400, err);
+    console.error(err);
     res.send(resp);
   }
 }
