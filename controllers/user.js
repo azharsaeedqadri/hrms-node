@@ -124,8 +124,8 @@ async function getAllUsers(req, res) {
     if (!users.length) {
       return res.send("No user found");
     }
-
-    return res.send(users);
+    const resp = getResponse(users, 200, "Success");
+    return res.send(resp);
   } catch (err) {
     const resp = getResponse(null, 400, err);
     res.send(resp);
@@ -162,7 +162,12 @@ async function addUser(req, res) {
     const user = await HrUser.findOne({ where: { username } });
 
     if (user) {
-      return res.send("User with this username already exists.");
+      const resp = getResponse(
+        null,
+        400,
+        "User with this username already exists."
+      );
+      return res.send(resp);
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -185,9 +190,11 @@ async function addUser(req, res) {
     const data = {
       username: primaryUsername,
       fullName: fName + " " + lName,
+      // role: role,
+      // is_deleted: addUser.is_deleted,
     };
-
-    return res.send(data);
+    const resp = getResponse(data, 200, "Success");
+    return res.send(resp);
   } catch (err) {
     const resp = getResponse(null, 400, err);
     res.send(resp);
