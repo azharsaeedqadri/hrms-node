@@ -6,6 +6,8 @@ const {
   mobileLogin,
   updateAdminPassword,
   updateAdminInfo,
+  updateAdminsBySuperUser,
+  updateStatusBySuperAdmin,
 } = require("../controllers/user");
 
 const router = express.Router();
@@ -21,5 +23,9 @@ router.put("/updateAdminInfo", updateAdminInfo);
 router.post("/portalLogin", portalLogin);
 
 router.post("/mobileLogin", mobileLogin);
+
+router.put("/updatedBySA/:id", updateAdminsBySuperUser);
+
+router.put("/activeStatusUpdateBySA/:id", updateStatusBySuperAdmin);
 
 module.exports = router;

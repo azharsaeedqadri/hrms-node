@@ -119,11 +119,14 @@ async function getAllUsers(req, res) {
       return res.send(resp);
     }
 
-    const users = await HrUser.findAll();
+    const users = await HrUser.findAll({
+      where: { is_active: true, is_deleted: false },
+    });
 
     if (!users.length) {
       return res.send("No user found");
     }
+
     const resp = getResponse(users, 200, "Success");
     return res.send(resp);
   } catch (err) {
@@ -337,6 +340,81 @@ async function mobileLogin(req, res) {
   }
 }
 
+async function updateAdminsBySuperUser(req, res) {
+  try {
+    const token = req.header("authorization").split("Bearer ");
+    const userID = getUserIDByBearerToken(token[1]);
+
+    const admin = await HrUser.findByPk(userID);
+
+    if (admin.role !== SUPER_ADMIN) {
+      const resp = getResponse(
+        null,
+        400,
+        "only super admin can update the info"
+      );
+      return res.send(resp);
+    }
+
+    const userIDToBeUpdated = req.params.id;
+    const values = req.body;
+
+    await HrUser.update(values, {
+      where: { user_id: userIDToBeUpdated },
+    });
+
+    const updatedUser = await HrUser.findByPk(userID);
+
+    const resp = getResponse(updatedUser, 200, "Admin user updated");
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong");
+    console.error(err);
+    res.send(resp);
+  }
+}
+
+async function updateStatusBySuperAdmin(req, res) {
+  try {
+    const token = req.header("authorization").split("Bearer ");
+    const userID = getUserIDByBearerToken(token[1]);
+
+    const admin = await HrUser.findByPk(userID);
+
+    if (admin.role !== SUPER_ADMIN) {
+      const resp = getResponse(
+        null,
+        400,
+        "only super admin can active or inactive an admin user."
+      );
+      return res.send(resp);
+    }
+
+    const userIDToBeUpdated = req.params.id;
+    const { is_active } = req.body;
+
+    const activeStatusUpdated = await HrUser.update(
+      { is_active },
+      {
+        where: {
+          user_id: userIDToBeUpdated,
+        },
+      }
+    );
+
+    const resp = getResponse(
+      activeStatusUpdated,
+      200,
+      "User active status changed successfully."
+    );
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong");
+    console.error(err);
+    res.send(resp);
+  }
+}
+
 module.exports = {
   getAllUsers,
   addUser,
@@ -344,4 +422,6 @@ module.exports = {
   mobileLogin,
   updateAdminPassword,
   updateAdminInfo,
+  updateAdminsBySuperUser,
+  updateStatusBySuperAdmin,
 };
