@@ -250,6 +250,7 @@ const LEAVE_RECORD_BY_LEAVE_ID_QUERY = `SELECT [employee_leaves_record].[id] as 
 [employee_information].[photo] as profilePicture,
 [employee_information].[leave_balance],
 [designations].[name] as designation,
+[teams].[name] as team,
 [leave_types].[name] as leaveType,
 [employee_leaves_record].[from_date] as fromDate, 
 [employee_leaves_record].[to_date] as toDate, 
@@ -268,6 +269,7 @@ LEFT JOIN employee_information ON [employee_leaves_record].employee_id=employee_
 LEFT JOIN leave_types ON [employee_leaves_record].leave_type_id=leave_types.id
 LEFT JOIN status_types ON [employee_leaves_record].status_type_id=status_types.id
 LEFT JOIN designations ON [employee_information].designation_id=designations.id
+LEFT JOIN teams ON [employee_information].team_id=teams.id
 WHERE employee_leaves_record.id = :leaveID`;
 
 const LEAVE_REASONS_BY_LEAVE_ID_QUERY = `SELECT [leave_reasons].[id],
