@@ -8,6 +8,7 @@ const {
   addReasonAndUpdateLeaveDates,
   getLeaveReasonsByLeaveID,
   cancelLeaveRequest,
+  getLeavesHistory,
 } = require("../controllers/leavesRecord");
 
 const router = express.Router();
@@ -27,5 +28,7 @@ router.post("/addReason", addReasonAndUpdateLeaveDates);
 router.get("/reasons/:id", getLeaveReasonsByLeaveID);
 
 router.put("/cancel/:id", cancelLeaveRequest);
+
+router.post("/history", getLeavesHistory);
 
 module.exports = router;

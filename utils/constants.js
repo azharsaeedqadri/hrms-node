@@ -183,6 +183,63 @@ LEFT JOIN status_types ON [employee_leaves_record].status_type_id=status_types.i
 LEFT JOIN designations ON [employee_information].designation_id=designations.id
 WHERE employee_leaves_record.status_type_id = :statusType`;
 
+const GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN = `SELECT [employee_leaves_record].[id] as leaveID,
+[employee_information].[employee_id] as employeeID,
+[employee_information].[first_name] as employeeFirstName,
+[employee_information].[last_name] as employeeLastName,
+[employee_information].[leave_balance],
+[employee_information].[personal_email] as employeePersonalEmail,
+[employee_information].[photo] as profilePicture,
+[designations].[name] as designation,
+[leave_types].[name] as leaveType,
+[employee_leaves_record].[from_date] as fromDate, 
+[employee_leaves_record].[to_date] as toDate, 
+[employee_leaves_record].[no_of_days] as numberOfDays, 
+[status_types].[name] as [status], 
+[employee_leaves_record].[attachment], 
+[employee_leaves_record].[reason], 
+[employee_leaves_record].[is_deleted], 
+[employee_leaves_record].[approved_date], 
+[employee_leaves_record].[approved_by], 
+[employee_leaves_record].[createdAt], 
+[employee_leaves_record].[updatedAt]
+FROM [employee_leaves_record]
+LEFT JOIN employee_information ON [employee_leaves_record].employee_id=employee_information.employee_id
+LEFT JOIN leave_types ON [employee_leaves_record].leave_type_id=leave_types.id
+LEFT JOIN status_types ON [employee_leaves_record].status_type_id=status_types.id
+LEFT JOIN designations ON [employee_information].designation_id=designations.id
+WHERE employee_leaves_record.status_type_id = :statusType
+AND employee_leaves_record.updatedAt >= :startDate AND employee_leaves_record.updatedAt <= :endDate`;
+
+const GET_LEAVES_HISTORY_QUERY = `SELECT [employee_leaves_record].[id] as leaveID,
+[employee_information].[employee_id] as employeeID,
+[employee_information].[first_name] as employeeFirstName,
+[employee_information].[last_name] as employeeLastName,
+[employee_information].[leave_balance],
+[employee_information].[personal_email] as employeePersonalEmail,
+[employee_information].[photo] as profilePicture,
+[designations].[name] as designation,
+[leave_types].[name] as leaveType,
+[employee_leaves_record].[from_date] as fromDate, 
+[employee_leaves_record].[to_date] as toDate, 
+[employee_leaves_record].[no_of_days] as numberOfDays, 
+[status_types].[name] as [status], 
+[employee_leaves_record].[attachment], 
+[employee_leaves_record].[reason], 
+[employee_leaves_record].[is_deleted], 
+[employee_leaves_record].[approved_date], 
+[employee_leaves_record].[approved_by], 
+[employee_leaves_record].[createdAt], 
+[employee_leaves_record].[updatedAt]
+FROM [employee_leaves_record]
+LEFT JOIN employee_information ON [employee_leaves_record].employee_id=employee_information.employee_id
+LEFT JOIN leave_types ON [employee_leaves_record].leave_type_id=leave_types.id
+LEFT JOIN status_types ON [employee_leaves_record].status_type_id=status_types.id
+LEFT JOIN designations ON [employee_information].designation_id=designations.id
+WHERE employee_leaves_record.status_type_id = :statusType
+AND employee_leaves_record.approved_by = :updatedBy
+AND employee_leaves_record.updatedAt >= :startDate AND employee_leaves_record.updatedAt <= :endDate`;
+
 const LEAVE_RECORD_BY_EMPLOYEE_ID_QUERY = `SELECT [employee_leaves_record].[id] as leaveID,
 [employee_information].[employee_id] as employeeID,
 [employee_information].[employee_code] as employeeCode,
@@ -389,4 +446,6 @@ module.exports = {
   GET_ALL_PAYROLLADJUSTMENT_DEDUCTIONS,
   EMPLOYEE_ACTIVITY_LOGS_QUERY,
   EMPLOYEE_ACTIVITY_LOGS_MOBILE_QUERY,
+  GET_LEAVES_HISTORY_QUERY,
+  GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN,
 };

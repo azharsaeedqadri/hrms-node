@@ -18,6 +18,9 @@ const {
   LEAVE_RECORD_BY_EMPLOYEE_ID_QUERY,
   LEAVE_RECORD_BY_LEAVE_ID_QUERY,
   LEAVE_REASONS_BY_LEAVE_ID_QUERY,
+  SUPER_ADMIN,
+  GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN,
+  GET_LEAVES_HISTORY_QUERY,
 } = require("../utils/constants");
 
 async function addRecord(req, res) {
@@ -382,6 +385,55 @@ async function leaveBalanceCronJob() {
   }
 }
 
+async function getLeavesHistory(req, res) {
+  try {
+    const token = req.header("authorization").split("Bearer ");
+
+    const userID = getUserIDByBearerToken(token[1]);
+
+    const adminUser = await HrUser.findByPk(userID);
+
+    const { startDate, endDate, statusType } = req.body;
+
+    if (adminUser.role === SUPER_ADMIN) {
+      const leavesHistoryList = await db.sequelize.query(
+        GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN,
+        {
+          type: QueryTypes.SELECT,
+          replacements: {
+            statusType,
+            startDate,
+            endDate,
+          },
+        }
+      );
+
+      const resp = getResponse(leavesHistoryList, 200, "success");
+      return res.send(resp);
+    }
+
+    const leavesHistoryList = await db.sequelize.query(
+      GET_LEAVES_HISTORY_QUERY,
+      {
+        type: QueryTypes.SELECT,
+        replacements: {
+          statusType: statusType,
+          startDate,
+          endDate,
+          updatedBy: userID,
+        },
+      }
+    );
+
+    const resp = getResponse(leavesHistoryList, 200, "success");
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, err);
+    console.error(err);
+    res.send(resp);
+  }
+}
+
 module.exports = {
   addRecord,
   getLeavesRequestList,
@@ -392,4 +444,5 @@ module.exports = {
   getLeaveReasonsByLeaveID,
   cancelLeaveRequest,
   leaveBalanceCronJob,
+  getLeavesHistory,
 };
