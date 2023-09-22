@@ -9,7 +9,7 @@ async function addDepartment(req, res) {
       const resp = getResponse(
         null,
         401,
-        "Please provide the name of the role."
+        "Please provide the name of the department."
       );
       return res.send(resp);
     }
