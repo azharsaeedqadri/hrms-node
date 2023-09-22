@@ -21,7 +21,7 @@ async function addDepartment(req, res) {
 
       const updatedRecord = Department.findOne({ where: { name } });
 
-      const resp = getResponse(updatedRecord, 200, "Record added successfully");
+      const resp = getResponse(updatedRecord, 400, "Record Already Exists");
       return res.send(resp);
     }
 
