@@ -427,6 +427,33 @@ AND [employee_information_audit].[action_performed] = 'Employee "Leave Status" U
 OR [employee_information_audit].[action_performed] = 'Employee "Medical Reimbursement Status" Updated'
 ORDER BY [employee_information_audit].[updated_date] DESC`;
 
+const GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN = `select medical_reimbursements.id as reimbursementID,
+medical_reimbursements.reimbursement_type as reimbursementType,
+medical_reimbursements.amount,
+status_types.[name] as [status],
+medical_reimbursements.pdf_url as pdfURL,
+CONCAT(employee_information.first_name, '', employee_information.last_name) as employeeName
+from medical_reimbursements 
+left join status_types ON medical_reimbursements.[status] = status_types.id
+left join employee_information ON medical_reimbursements.employee_id = employee_information.employee_id
+where medical_reimbursements.[status] = :statusType
+and medical_reimbursements.updatedAt >= :startDate
+and medical_reimbursements.updatedAt <= :endDate`;
+
+const GET_MEDICAL_CLAIMS_HISTORY_QUERY = `select medical_reimbursements.id as reimbursementID,
+medical_reimbursements.reimbursement_type as reimbursementType,
+medical_reimbursements.amount,
+status_types.[name] as [status],
+medical_reimbursements.pdf_url as pdfURL,
+CONCAT(employee_information.first_name, ' ', employee_information.last_name) as employeeName
+from medical_reimbursements 
+left join status_types ON medical_reimbursements.[status] = status_types.id
+left join employee_information ON medical_reimbursements.employee_id = employee_information.employee_id
+where medical_reimbursements.[status] = :statusType
+and medical_reimbursements.updatedAt >= :startDate
+and medical_reimbursements.updatedAt <= :endDate
+and medical_reimbursements.updated_by = :userID`;
+
 module.exports = {
   SUPER_ADMIN,
   HR,
@@ -448,4 +475,6 @@ module.exports = {
   EMPLOYEE_ACTIVITY_LOGS_MOBILE_QUERY,
   GET_LEAVES_HISTORY_QUERY,
   GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN,
+  GET_MEDICAL_CLAIMS_HISTORY_QUERY,
+  GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN,
 };

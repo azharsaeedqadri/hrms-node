@@ -3,7 +3,15 @@ const {
   EmployeeInformation,
   StatusType,
   MedicalLimit,
+  HrUser,
 } = require("../models");
+const db = require("../models");
+const { QueryTypes } = require("sequelize");
+const {
+  SUPER_ADMIN,
+  GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN,
+  GET_MEDICAL_CLAIMS_HISTORY_QUERY,
+} = require("../utils/constants");
 const {
   getResponse,
   getUserIDByBearerToken,
@@ -229,6 +237,55 @@ async function updateMedicalLimits(req, res) {
   }
 }
 
+async function getMedicalClaimsHistory(req, res) {
+  try {
+    const token = req.header("authorization").split("Bearer ");
+
+    const userID = getUserIDByBearerToken(token[1]);
+
+    const adminUser = await HrUser.findByPk(userID);
+
+    const { startDate, endDate, statusType } = req.body;
+
+    if (adminUser.role === SUPER_ADMIN) {
+      const medicalClaimsHistoryList = await db.sequelize.query(
+        GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN,
+        {
+          type: QueryTypes.SELECT,
+          replacements: {
+            statusType,
+            startDate,
+            endDate,
+          },
+        }
+      );
+
+      const resp = getResponse(medicalClaimsHistoryList, 200, "success");
+      return res.send(resp);
+    }
+
+    const medicalClaimsHistoryList = await db.sequelize.query(
+      GET_MEDICAL_CLAIMS_HISTORY_QUERY,
+      {
+        type: QueryTypes.SELECT,
+        replacements: {
+          statusType,
+          startDate,
+          endDate,
+          userID,
+        },
+      }
+    );
+
+    const resp = getResponse(medicalClaimsHistoryList, 200, "success");
+    res.send(resp);
+  } catch (err) {
+    const resp = getResponse(null, 400, "Something went wrong");
+    console.error(err);
+    res.send(resp);
+  }
+}
+
 module.exports = {
   addReimbursement,
   getReimbursementByID,
@@ -238,4 +295,5 @@ module.exports = {
   addMedicalLimits,
   getMedicalLimits,
   updateMedicalLimits,
+  getMedicalClaimsHistory,
 };
