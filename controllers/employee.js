@@ -7,7 +7,9 @@ const {
   Allowance,
   MedicalLimit,
   EmployeeMonthlyPayroll,
-  TaxSlab
+  TaxSlab,
+  MedicalReimbursement,
+  StatusType,
 } = require("../models");
 const db = require("../models");
 const { QueryTypes, Op } = require("sequelize");
@@ -23,7 +25,7 @@ const {
 const {
   getResponse,
   getUserIDByBearerToken,
-  calculateAnnualTax
+  calculateAnnualTax,
 } = require("../utils/valueHelpers");
 
 async function addNewEmployee(req, res) {
@@ -289,6 +291,14 @@ async function getEmployeeByID(req, res) {
       }
     );
 
+    const reimbursements = await MedicalReimbursement.findAll({
+      where: {
+        // statu 2 is for approved and 4 is for rejected
+        status: { [Op.or]: [2, 4] },
+      },
+      include: [{ model: StatusType }, { model: EmployeeInformation }],
+    });
+
     const statusLogsData = await Promise.all(
       employeeStatusLogs.map(async (emp) => {
         const user = await HrUser.findByPk(emp.updated_by);
@@ -350,14 +360,14 @@ async function getEmployeeByID(req, res) {
         }
 
         if (current.Allowance.is_taxable === false)
-          accumulator["sum"].value += (current.percentage * employee[0].gross_salary) / 100 ||
-            0;
+          accumulator["sum"].value +=
+            (current.percentage * employee[0].gross_salary) / 100 || 0;
         return accumulator;
       },
       {}
     );
 
-    var nonTaxableAmount = (nonTaxableGsAllowances?.sum?.value || 0)
+    var nonTaxableAmount = nonTaxableGsAllowances?.sum?.value || 0;
     var annualGrossSalary = (employee[0].gross_salary - nonTaxableAmount) * 12;
 
     var taxSlab = taxSlabs.filter((obj) => {
@@ -375,7 +385,10 @@ async function getEmployeeByID(req, res) {
     var remainingMonths = 0;
     while (date <= endDate) {
       if (date.getMonth() === new Date().getMonth()) {
-        remainingMonths = endDate.getMonth() - date.getMonth() + 12 * (endDate.getFullYear() - date.getFullYear())
+        remainingMonths =
+          endDate.getMonth() -
+          date.getMonth() +
+          12 * (endDate.getFullYear() - date.getFullYear());
         break;
       }
       date.setMonth(date.getMonth() + 1);
@@ -385,14 +398,15 @@ async function getEmployeeByID(req, res) {
       ...employee[0],
       allowances: createdEmployeeAllowances,
       finalizedLeaves: employeeFinalizedLeaveRequests || {},
+      medicalReimbursements: reimbursements || [],
       statusLogs: statusLogsData || {},
       activityLogs: employeeActivityLogs,
       payrollHistory: employeePayrollHistory || [],
       tax: {
         annualTax: Math.round(annualTaxableSalary * 100) / 100,
         monthlyTax: Math.round(monthlyTaxableSalary * 100) / 100,
-        remainingFiscalYearMonths: remainingMonths
-      }
+        remainingFiscalYearMonths: remainingMonths,
+      },
     };
 
     const resp = getResponse(respData, 200, "Success");
