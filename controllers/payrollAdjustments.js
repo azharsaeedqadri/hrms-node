@@ -753,7 +753,7 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
         (accumulator, currentObject) => {
           const keyToAdd = toCamelCase(currentObject.Allowance.name);
           var grossAmount = (currentObject.dataValues.percentage * item.gross_salary) / 100 || 0
-          var amount = Math.round(grossAmount * 100) / 100;
+          var amount = Math.round(grossAmount);
           accumulator[keyToAdd] = amount;
           return accumulator;
         },
@@ -881,11 +881,11 @@ async function calculatePayrollForAllEmp(startDate, endDate) {
         allowances: empAllowances,
         epfEmployeer: 0,
         totalGSAllowances: totalGSAllowances,
-        taxableSalary: Math.round(monthlyTaxableSalary * 100) / 100,
+        taxableSalary: Math.round(monthlyTaxableSalary),
         deductions: empDeductions,
         epfEmployees: 0,
         reimbursement: 0,
-        netSalary: Math.round(netSalaryTotal * 100) / 100,
+        netSalary: Math.round(netSalaryTotal),
         payslip: {
           titleOfAccount: item.acc_title,
           accountNo: item.acc_number,
@@ -1026,7 +1026,7 @@ async function getEmployeePayrollDetails(req, res) {
       (accumulator, currentObject) => {
         const keyToAdd = toCamelCase(currentObject.Allowance.name);
         var grossAmount = (currentObject.dataValues.percentage * selectedEmployee.gross_salary) / 100 || 0;
-        var amount = Math.round(grossAmount * 100) / 100;
+        var amount = Math.round(grossAmount);
         accumulator[keyToAdd] = amount;
         return accumulator;
       },
@@ -1121,6 +1121,18 @@ async function getEmployeePayrollDetails(req, res) {
     var totalDeductions = empDeductionsAgreegate.sum?.value || 0;
     var totalGSAllowances = selectedEmployee.gross_salary + totalAllowances;
     var nonTaxableAmount = (nonTaxableGsAllowances?.sum?.value || 0) + (nonTaxableAllowances?.sum?.value || 0);
+    // var currentMonthGrossSalary = 0;
+    // var payrollHistory = null;
+    //calculate average gross salary of past months including current month 
+    // var employeePayrollHistory = await EmployeeMonthlyPayroll.findAll({
+    //   where: {
+    //     employee_id: { [Op.eq]: empId },
+    //   }
+    // });
+
+    // if (!employeePayrollHistory) {      
+    //}
+
     var annualGrossSalary = (totalGSAllowances - nonTaxableAmount) * 12;
 
     var taxSlab = taxSlabs.filter((obj) => {
@@ -1153,11 +1165,11 @@ async function getEmployeePayrollDetails(req, res) {
       allowances: Array.isArray(empAllowances) ? empAllowances : [],
       epfEmployeer: 0,
       totalGSAllowances: totalGSAllowances,
-      taxableSalary: Math.round(monthlyTaxableSalary * 100) / 100,
+      taxableSalary: Math.round(monthlyTaxableSalary),
       deductions: Array.isArray(empDeductions) ? empDeductions : [],
       epfEmployees: 0,
       reimbursement: 0,
-      netSalary: Math.round(netSalaryTotal * 100) / 100,
+      netSalary: Math.round(netSalaryTotal),
       paymentMode: selectedEmployee.SalaryType.name,
       payslip: {
         titleOfAccount: selectedEmployee.acc_title,
@@ -1346,6 +1358,7 @@ async function checkPayrollStatus(req, res) {
 
     const taxSlabs = await TaxSlab.findAll();
 
+    //check if tax slabs ranges are correct and there are no gaps
     if (!taxSlabs.length) {
       errors.push({
         message: "Tax Slabs are not defined"

@@ -403,9 +403,9 @@ async function getEmployeeByID(req, res) {
       activityLogs: employeeActivityLogs,
       payrollHistory: employeePayrollHistory || [],
       tax: {
-        annualTax: Math.round(annualTaxableSalary * 100) / 100,
-        monthlyTax: Math.round(monthlyTaxableSalary * 100) / 100,
-        remainingFiscalYearMonths: remainingMonths,
+        annualTax: Math.round(annualTaxableSalary),
+        monthlyTax: Math.round(monthlyTaxableSalary),
+        remainingFiscalYearMonths: remainingMonths
       },
     };
 

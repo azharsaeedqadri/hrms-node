@@ -42,6 +42,23 @@ const calculateAnnualTax = (taxSlab, annualGrossSalary) => {
   return annualTax;
 };
 
+function checkTaxSlabsGaps(arr) {
+  arr.sort((a, b) => a.start - b.start);
+  var message = "";
+  for (let i = 0; i < arr.length - 1; i++) {
+    const currentRange = arr[i];
+    const nextRange = arr[i + 1];
+
+    if (currentRange.end < nextRange.start) {
+      message = `Gap found between slab5 max value ${currentRange.end} slab6 min val and ${nextRange.start}`
+      console.log(`Gap found between ${currentRange.end} and ${nextRange.start}`);
+      break;
+    }
+  }
+
+  return message;
+}
+
 module.exports = {
   getResponse,
   getUserIDByBearerToken,
