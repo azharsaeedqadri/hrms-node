@@ -6,11 +6,14 @@ const {
   HrUser,
 } = require("../models");
 const db = require("../models");
+const moment = require("moment");
 const { QueryTypes } = require("sequelize");
 const {
   SUPER_ADMIN,
   GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN,
   GET_MEDICAL_CLAIMS_HISTORY_QUERY,
+  GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN_WITHOUT_REQ_BODY,
+  GET_MEDICAL_CLAIMS_HISTORY_QUERY_WITHOUT_REQ_BODY,
 } = require("../utils/constants");
 const {
   getResponse,
@@ -246,6 +249,56 @@ async function getMedicalClaimsHistory(req, res) {
     const adminUser = await HrUser.findByPk(userID);
 
     const { startDate, endDate, statusType } = req.body;
+
+    if (
+      !startDate ||
+      !endDate ||
+      startDate.trim() === "" ||
+      endDate.trim() === "" ||
+      !statusType
+    ) {
+      const currentDate = moment();
+
+      firstDate = currentDate
+        .clone()
+        .startOf("month")
+        .format("YYYY-MM-DDTHH:mm:ss.SSS");
+      lastDate = currentDate
+        .clone()
+        .endOf("month")
+        .format("YYYY-MM-DDTHH:mm:ss.SSS");
+
+      if (adminUser.role === SUPER_ADMIN) {
+        const medicalClaimsHistoryList = await db.sequelize.query(
+          GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN_WITHOUT_REQ_BODY,
+          {
+            type: QueryTypes.SELECT,
+            replacements: {
+              startDate: firstDate,
+              endDate: lastDate,
+            },
+          }
+        );
+
+        const resp = getResponse(medicalClaimsHistoryList, 200, "success");
+        return res.send(resp);
+      }
+
+      const medicalClaimsHistoryList = await db.sequelize.query(
+        GET_MEDICAL_CLAIMS_HISTORY_QUERY_WITHOUT_REQ_BODY,
+        {
+          type: QueryTypes.SELECT,
+          replacements: {
+            startDate: firstDate,
+            endDate: lastDate,
+            updatedBy: userID,
+          },
+        }
+      );
+
+      const resp = getResponse(medicalClaimsHistoryList, 200, "success");
+      return res.send(resp);
+    }
 
     if (adminUser.role === SUPER_ADMIN) {
       const medicalClaimsHistoryList = await db.sequelize.query(

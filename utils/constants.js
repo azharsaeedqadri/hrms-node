@@ -211,6 +211,33 @@ LEFT JOIN designations ON [employee_information].designation_id=designations.id
 WHERE employee_leaves_record.status_type_id = :statusType
 AND employee_leaves_record.updatedAt >= :startDate AND employee_leaves_record.updatedAt <= :endDate`;
 
+const GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN_WITHOUT_REQ_BODY = `SELECT [employee_leaves_record].[id] as leaveID,
+[employee_information].[employee_id] as employeeID,
+[employee_information].[first_name] as employeeFirstName,
+[employee_information].[last_name] as employeeLastName,
+[employee_information].[leave_balance],
+[employee_information].[personal_email] as employeePersonalEmail,
+[employee_information].[photo] as profilePicture,
+[designations].[name] as designation,
+[leave_types].[name] as leaveType,
+[employee_leaves_record].[from_date] as fromDate, 
+[employee_leaves_record].[to_date] as toDate, 
+[employee_leaves_record].[no_of_days] as numberOfDays, 
+[status_types].[name] as [status], 
+[employee_leaves_record].[attachment], 
+[employee_leaves_record].[reason], 
+[employee_leaves_record].[is_deleted], 
+[employee_leaves_record].[approved_date], 
+[employee_leaves_record].[approved_by], 
+[employee_leaves_record].[createdAt], 
+[employee_leaves_record].[updatedAt]
+FROM [employee_leaves_record]
+LEFT JOIN employee_information ON [employee_leaves_record].employee_id=employee_information.employee_id
+LEFT JOIN leave_types ON [employee_leaves_record].leave_type_id=leave_types.id
+LEFT JOIN status_types ON [employee_leaves_record].status_type_id=status_types.id
+LEFT JOIN designations ON [employee_information].designation_id=designations.id
+WHERE employee_leaves_record.updatedAt >= :startDate AND employee_leaves_record.updatedAt <= :endDate`;
+
 const GET_LEAVES_HISTORY_QUERY = `SELECT [employee_leaves_record].[id] as leaveID,
 [employee_information].[employee_id] as employeeID,
 [employee_information].[first_name] as employeeFirstName,
@@ -238,6 +265,34 @@ LEFT JOIN status_types ON [employee_leaves_record].status_type_id=status_types.i
 LEFT JOIN designations ON [employee_information].designation_id=designations.id
 WHERE employee_leaves_record.status_type_id = :statusType
 AND employee_leaves_record.approved_by = :updatedBy
+AND employee_leaves_record.updatedAt >= :startDate AND employee_leaves_record.updatedAt <= :endDate`;
+
+const GET_LEAVES_HISTORY_QUERY_WITHOUT_REQ_BODY = `SELECT [employee_leaves_record].[id] as leaveID,
+[employee_information].[employee_id] as employeeID,
+[employee_information].[first_name] as employeeFirstName,
+[employee_information].[last_name] as employeeLastName,
+[employee_information].[leave_balance],
+[employee_information].[personal_email] as employeePersonalEmail,
+[employee_information].[photo] as profilePicture,
+[designations].[name] as designation,
+[leave_types].[name] as leaveType,
+[employee_leaves_record].[from_date] as fromDate, 
+[employee_leaves_record].[to_date] as toDate, 
+[employee_leaves_record].[no_of_days] as numberOfDays, 
+[status_types].[name] as [status], 
+[employee_leaves_record].[attachment], 
+[employee_leaves_record].[reason], 
+[employee_leaves_record].[is_deleted], 
+[employee_leaves_record].[approved_date], 
+[employee_leaves_record].[approved_by], 
+[employee_leaves_record].[createdAt], 
+[employee_leaves_record].[updatedAt]
+FROM [employee_leaves_record]
+LEFT JOIN employee_information ON [employee_leaves_record].employee_id=employee_information.employee_id
+LEFT JOIN leave_types ON [employee_leaves_record].leave_type_id=leave_types.id
+LEFT JOIN status_types ON [employee_leaves_record].status_type_id=status_types.id
+LEFT JOIN designations ON [employee_information].designation_id=designations.id
+WHERE employee_leaves_record.approved_by = :updatedBy
 AND employee_leaves_record.updatedAt >= :startDate AND employee_leaves_record.updatedAt <= :endDate`;
 
 const LEAVE_RECORD_BY_EMPLOYEE_ID_QUERY = `SELECT [employee_leaves_record].[id] as leaveID,
@@ -440,6 +495,18 @@ where medical_reimbursements.[status] = :statusType
 and medical_reimbursements.updatedAt >= :startDate
 and medical_reimbursements.updatedAt <= :endDate`;
 
+const GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN_WITHOUT_REQ_BODY = `select medical_reimbursements.id as reimbursementID,
+medical_reimbursements.reimbursement_type as reimbursementType,
+medical_reimbursements.amount,
+status_types.[name] as [status],
+medical_reimbursements.pdf_url as pdfURL,
+CONCAT(employee_information.first_name, '', employee_information.last_name) as employeeName
+from medical_reimbursements 
+left join status_types ON medical_reimbursements.[status] = status_types.id
+left join employee_information ON medical_reimbursements.employee_id = employee_information.employee_id
+where medical_reimbursements.updatedAt >= :startDate
+and medical_reimbursements.updatedAt <= :endDate`;
+
 const GET_MEDICAL_CLAIMS_HISTORY_QUERY = `select medical_reimbursements.id as reimbursementID,
 medical_reimbursements.reimbursement_type as reimbursementType,
 medical_reimbursements.amount,
@@ -451,6 +518,19 @@ left join status_types ON medical_reimbursements.[status] = status_types.id
 left join employee_information ON medical_reimbursements.employee_id = employee_information.employee_id
 where medical_reimbursements.[status] = :statusType
 and medical_reimbursements.updatedAt >= :startDate
+and medical_reimbursements.updatedAt <= :endDate
+and medical_reimbursements.updated_by = :userID`;
+
+const GET_MEDICAL_CLAIMS_HISTORY_QUERY_WITHOUT_REQ_BODY = `select medical_reimbursements.id as reimbursementID,
+medical_reimbursements.reimbursement_type as reimbursementType,
+medical_reimbursements.amount,
+status_types.[name] as [status],
+medical_reimbursements.pdf_url as pdfURL,
+CONCAT(employee_information.first_name, ' ', employee_information.last_name) as employeeName
+from medical_reimbursements 
+left join status_types ON medical_reimbursements.[status] = status_types.id
+left join employee_information ON medical_reimbursements.employee_id = employee_information.employee_id
+where medical_reimbursements.updatedAt >= :startDate
 and medical_reimbursements.updatedAt <= :endDate
 and medical_reimbursements.updated_by = :userID`;
 
@@ -477,4 +557,8 @@ module.exports = {
   GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN,
   GET_MEDICAL_CLAIMS_HISTORY_QUERY,
   GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN,
+  GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN_WITHOUT_REQ_BODY,
+  GET_LEAVES_HISTORY_QUERY_WITHOUT_REQ_BODY,
+  GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN_WITHOUT_REQ_BODY,
+  GET_MEDICAL_CLAIMS_HISTORY_QUERY_WITHOUT_REQ_BODY,
 };

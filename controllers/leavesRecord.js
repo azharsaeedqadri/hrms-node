@@ -7,6 +7,7 @@ const {
 } = require("../models");
 const db = require("../models");
 const { QueryTypes } = require("sequelize");
+const moment = require("moment");
 const {
   getResponse,
   getUserIDByBearerToken,
@@ -20,7 +21,9 @@ const {
   LEAVE_REASONS_BY_LEAVE_ID_QUERY,
   SUPER_ADMIN,
   GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN,
+  GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN_WITHOUT_REQ_BODY,
   GET_LEAVES_HISTORY_QUERY,
+  GET_LEAVES_HISTORY_QUERY_WITHOUT_REQ_BODY,
 } = require("../utils/constants");
 
 async function addRecord(req, res) {
@@ -394,6 +397,56 @@ async function getLeavesHistory(req, res) {
     const adminUser = await HrUser.findByPk(userID);
 
     const { startDate, endDate, statusType } = req.body;
+
+    if (
+      !startDate ||
+      !endDate ||
+      startDate.trim() === "" ||
+      endDate.trim() === "" ||
+      !statusType
+    ) {
+      const currentDate = moment();
+
+      firstDate = currentDate
+        .clone()
+        .startOf("month")
+        .format("YYYY-MM-DDTHH:mm:ss.SSS");
+      lastDate = currentDate
+        .clone()
+        .endOf("month")
+        .format("YYYY-MM-DDTHH:mm:ss.SSS");
+
+      if (adminUser.role === SUPER_ADMIN) {
+        const leavesHistoryList = await db.sequelize.query(
+          GET_LEAVES_HISTORY_QUERY_FOR_SUPER_ADMIN_WITHOUT_REQ_BODY,
+          {
+            type: QueryTypes.SELECT,
+            replacements: {
+              startDate: firstDate,
+              endDate: lastDate,
+            },
+          }
+        );
+
+        const resp = getResponse(leavesHistoryList, 200, "success");
+        return res.send(resp);
+      }
+
+      const leavesHistoryList = await db.sequelize.query(
+        GET_LEAVES_HISTORY_QUERY_WITHOUT_REQ_BODY,
+        {
+          type: QueryTypes.SELECT,
+          replacements: {
+            startDate: firstDate,
+            endDate: lastDate,
+            updatedBy: userID,
+          },
+        }
+      );
+
+      const resp = getResponse(leavesHistoryList, 200, "success");
+      return res.send(resp);
+    }
 
     if (adminUser.role === SUPER_ADMIN) {
       const leavesHistoryList = await db.sequelize.query(
