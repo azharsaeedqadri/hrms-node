@@ -487,7 +487,10 @@ medical_reimbursements.reimbursement_type as reimbursementType,
 medical_reimbursements.amount,
 status_types.[name] as [status],
 medical_reimbursements.pdf_url as pdfURL,
-CONCAT(employee_information.first_name, '', employee_information.last_name) as employeeName
+CONCAT(employee_information.first_name, '', employee_information.last_name) as employeeName,
+[employee_information].[employee_id] as employeeID,
+[employee_information].[office_email] as employeeEmail,
+[employee_information].[photo] as employeePhoto
 from medical_reimbursements 
 left join status_types ON medical_reimbursements.[status] = status_types.id
 left join employee_information ON medical_reimbursements.employee_id = employee_information.employee_id
@@ -500,7 +503,10 @@ medical_reimbursements.reimbursement_type as reimbursementType,
 medical_reimbursements.amount,
 status_types.[name] as [status],
 medical_reimbursements.pdf_url as pdfURL,
-CONCAT(employee_information.first_name, '', employee_information.last_name) as employeeName
+CONCAT(employee_information.first_name, '', employee_information.last_name) as employeeName,
+[employee_information].[employee_id] as employeeID,
+[employee_information].[office_email] as employeeEmail,
+[employee_information].[photo] as employeePhoto
 from medical_reimbursements 
 left join status_types ON medical_reimbursements.[status] = status_types.id
 left join employee_information ON medical_reimbursements.employee_id = employee_information.employee_id
@@ -512,7 +518,10 @@ medical_reimbursements.reimbursement_type as reimbursementType,
 medical_reimbursements.amount,
 status_types.[name] as [status],
 medical_reimbursements.pdf_url as pdfURL,
-CONCAT(employee_information.first_name, ' ', employee_information.last_name) as employeeName
+CONCAT(employee_information.first_name, ' ', employee_information.last_name) as employeeName,
+[employee_information].[employee_id] as employeeID,
+[employee_information].[office_email] as employeeEmail,
+[employee_information].[photo] as employeePhoto
 from medical_reimbursements 
 left join status_types ON medical_reimbursements.[status] = status_types.id
 left join employee_information ON medical_reimbursements.employee_id = employee_information.employee_id
@@ -526,7 +535,10 @@ medical_reimbursements.reimbursement_type as reimbursementType,
 medical_reimbursements.amount,
 status_types.[name] as [status],
 medical_reimbursements.pdf_url as pdfURL,
-CONCAT(employee_information.first_name, ' ', employee_information.last_name) as employeeName
+CONCAT(employee_information.first_name, ' ', employee_information.last_name) as employeeName,
+[employee_information].[employee_id] as employeeID,
+[employee_information].[office_email] as employeeEmail,
+[employee_information].[photo] as employeePhoto
 from medical_reimbursements 
 left join status_types ON medical_reimbursements.[status] = status_types.id
 left join employee_information ON medical_reimbursements.employee_id = employee_information.employee_id
