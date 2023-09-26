@@ -89,6 +89,9 @@ async function getReimbursementByID(req, res) {
 async function getAllReimbursements(req, res) {
   try {
     const reimbursements = await MedicalReimbursement.findAll({
+      where: {
+        status: 1,
+      },
       include: [{ model: StatusType }, { model: EmployeeInformation }],
     });
 
