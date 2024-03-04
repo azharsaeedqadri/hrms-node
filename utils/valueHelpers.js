@@ -26,38 +26,16 @@ const calculateOvertime = (numberOfHours, grossSalary) => {
 };
 
 //EPF stands for Employee Provident Fund
-const calculateEPF = (basicSalary, epfPercentage) => {
-  const percent = epfPercentage / 100;
-  return basicSalary * percent;
+const calculateEPF = (basicSalary) => {
+  // epf is 8.334% of the basic salary
+  const epfPercentage = 8.334 / 100;
+
+  return basicSalary * epfPercentage;
 };
 
 const calculateLeaveEncashments = (leaveBalance, hourlyRate) => {
   return leaveBalance * hourlyRate * 8;
 };
-
-const calculateAnnualTax = (taxSlab, annualGrossSalary) => {
-  var exceedAmount = annualGrossSalary - taxSlab.minimum_income;
-  var percentAmount = exceedAmount * taxSlab.percentage / 100;
-  var annualTax = taxSlab.minimum_income > 0 ? percentAmount + taxSlab.additional_amount : 0;
-  return annualTax;
-};
-
-function checkTaxSlabsGaps(arr) {
-  arr.sort((a, b) => a.start - b.start);
-  var message = "";
-  for (let i = 0; i < arr.length - 1; i++) {
-    const currentRange = arr[i];
-    const nextRange = arr[i + 1];
-
-    if (currentRange.end < nextRange.start) {
-      message = `Gap found between slab5 max value ${currentRange.end} slab6 min val and ${nextRange.start}`
-      console.log(`Gap found between ${currentRange.end} and ${nextRange.start}`);
-      break;
-    }
-  }
-
-  return message;
-}
 
 module.exports = {
   getResponse,
@@ -65,5 +43,4 @@ module.exports = {
   calculateOvertime,
   calculateEPF,
   calculateLeaveEncashments,
-  calculateAnnualTax
 };

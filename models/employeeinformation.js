@@ -21,17 +21,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "designation_id",
       });
 
-      models.EmployeeInformation.belongsTo(models.SalaryType, {
-        foreignKey: "salary_type_id",
-      });
-
       models.EmployeeInformation.belongsTo(models.BankType, {
         foreignKey: "bank_id",
       });
 
-      models.EmployeeInformation.hasMany(models.EmployeeAllowance, {
-        foreignKey: "employee_id",
-      });
     }
   }
   EmployeeInformation.init(
@@ -80,9 +73,7 @@ module.exports = (sequelize, DataTypes) => {
       opd_balance: DataTypes.INTEGER,
       currency_type: DataTypes.INTEGER,
       project_manager: DataTypes.BIGINT,
-      resignation_reason: DataTypes.STRING,
       resignation_date: DataTypes.DATE,
-      rejoining_reason: DataTypes.STRING,
       rejoining_date: DataTypes.DATE,
       blood_group: DataTypes.STRING,
       is_probation_completed: DataTypes.BOOLEAN,

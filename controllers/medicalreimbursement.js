@@ -3,22 +3,8 @@ const {
   EmployeeInformation,
   StatusType,
   MedicalLimit,
-  HrUser,
 } = require("../models");
-const db = require("../models");
-const moment = require("moment");
-const { QueryTypes } = require("sequelize");
-const {
-  SUPER_ADMIN,
-  GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN,
-  GET_MEDICAL_CLAIMS_HISTORY_QUERY,
-  GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN_WITHOUT_REQ_BODY,
-  GET_MEDICAL_CLAIMS_HISTORY_QUERY_WITHOUT_REQ_BODY,
-} = require("../utils/constants");
-const {
-  getResponse,
-  getUserIDByBearerToken,
-} = require("../utils/valueHelpers");
+const { getResponse } = require("../utils/valueHelpers");
 
 async function addReimbursement(req, res) {
   try {
@@ -89,9 +75,6 @@ async function getReimbursementByID(req, res) {
 async function getAllReimbursements(req, res) {
   try {
     const reimbursements = await MedicalReimbursement.findAll({
-      where: {
-        status: 1,
-      },
       include: [{ model: StatusType }, { model: EmployeeInformation }],
     });
 
@@ -139,14 +122,11 @@ async function getReimbursementDetailsByEmpID(req, res) {
 
 async function updateStatus(req, res) {
   try {
-    const token = req.header("authorization").split("Bearer ");
-
-    const userID = getUserIDByBearerToken(token[1]);
     const reimbursementID = parseInt(req.params.id);
     const { status, type, amount, employee_id } = req.body;
 
     await MedicalReimbursement.update(
-      { status, updated_by: userID },
+      { status },
       { where: { id: reimbursementID } }
     );
 
@@ -243,105 +223,6 @@ async function updateMedicalLimits(req, res) {
   }
 }
 
-async function getMedicalClaimsHistory(req, res) {
-  try {
-    const token = req.header("authorization").split("Bearer ");
-
-    const userID = getUserIDByBearerToken(token[1]);
-
-    const adminUser = await HrUser.findByPk(userID);
-
-    const { startDate, endDate, statusType } = req.body;
-
-    if (
-      !startDate ||
-      !endDate ||
-      startDate.trim() === "" ||
-      endDate.trim() === "" ||
-      !statusType
-    ) {
-      const currentDate = moment();
-
-      firstDate = currentDate
-        .clone()
-        .startOf("month")
-        .format("YYYY-MM-DDTHH:mm:ss.SSS");
-      lastDate = currentDate
-        .clone()
-        .endOf("month")
-        .format("YYYY-MM-DDTHH:mm:ss.SSS");
-
-      if (adminUser.role === SUPER_ADMIN) {
-        const medicalClaimsHistoryList = await db.sequelize.query(
-          GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN_WITHOUT_REQ_BODY,
-          {
-            type: QueryTypes.SELECT,
-            replacements: {
-              startDate: firstDate,
-              endDate: lastDate,
-            },
-          }
-        );
-
-        const resp = getResponse(medicalClaimsHistoryList, 200, "success");
-        return res.send(resp);
-      }
-
-      const medicalClaimsHistoryList = await db.sequelize.query(
-        GET_MEDICAL_CLAIMS_HISTORY_QUERY_WITHOUT_REQ_BODY,
-        {
-          type: QueryTypes.SELECT,
-          replacements: {
-            startDate: firstDate,
-            endDate: lastDate,
-            updatedBy: userID,
-          },
-        }
-      );
-
-      const resp = getResponse(medicalClaimsHistoryList, 200, "success");
-      return res.send(resp);
-    }
-
-    if (adminUser.role === SUPER_ADMIN) {
-      const medicalClaimsHistoryList = await db.sequelize.query(
-        GET_MEDICAL_CLAIMS_HISTORY_QUERY_FOR_ADMIN,
-        {
-          type: QueryTypes.SELECT,
-          replacements: {
-            statusType,
-            startDate,
-            endDate,
-          },
-        }
-      );
-
-      const resp = getResponse(medicalClaimsHistoryList, 200, "success");
-      return res.send(resp);
-    }
-
-    const medicalClaimsHistoryList = await db.sequelize.query(
-      GET_MEDICAL_CLAIMS_HISTORY_QUERY,
-      {
-        type: QueryTypes.SELECT,
-        replacements: {
-          statusType,
-          startDate,
-          endDate,
-          userID,
-        },
-      }
-    );
-
-    const resp = getResponse(medicalClaimsHistoryList, 200, "success");
-    res.send(resp);
-  } catch (err) {
-    const resp = getResponse(null, 400, "Something went wrong");
-    console.error(err);
-    res.send(resp);
-  }
-}
-
 module.exports = {
   addReimbursement,
   getReimbursementByID,
@@ -351,5 +232,4 @@ module.exports = {
   addMedicalLimits,
   getMedicalLimits,
   updateMedicalLimits,
-  getMedicalClaimsHistory,
 };

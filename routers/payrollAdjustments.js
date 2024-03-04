@@ -6,11 +6,7 @@ const {
   addOvertime,
   addEncashedLeaves,
   addEPF,
-  calculatePayroll,
-  runPayroll,
-  getEmployeePayrollDetails,
-  updateEmployeePayrollDetails,
-  checkPayrollStatus
+  calculatePayroll
 } = require("../controllers/payrollAdjustments");
 
 const router = express.Router();
@@ -28,14 +24,5 @@ router.post("/get", getAllPayrollRecords);
 router.post("/remove", removePayrollItem);
 
 router.post("/calc", calculatePayroll);
-
-router.post("/run", runPayroll);
-
-router.post("/getdetails", getEmployeePayrollDetails);
-
-router.post("/updatedetails", updateEmployeePayrollDetails);
-
-router.post("/checkstatus", checkPayrollStatus);
-
 
 module.exports = router;

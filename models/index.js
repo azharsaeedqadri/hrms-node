@@ -1,33 +1,49 @@
-"use strict";
+'use strict';
 
-const fs = require("fs");
-const path = require("path");
-const Sequelize = require("sequelize");
-const process = require("process");
+const fs = require('fs');
+const path = require('path');
+const Sequelize = require('sequelize');
+const process = require('process');
 const basename = path.basename(__filename);
 
+require('dotenv');
 const db = {};
 
-console.log("DB_NAME: ", process.env.DB_NAME);
+let sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASS,
+  {
+    host: process.env.DB_HOST,
+    dialect: 'mssql',
+    dialectOptions: {
+      options: {
+        instanceName: process.env.DB_INSTANCE,
+        encrypt: true,
+      },
+    },
+  },
+);
 
-let sequelize = new Sequelize({
-  database: process.env.DB_NAME,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  host: process.env.DB_HOST,
-  dialect: "mssql",
-});
+sequelize
+  .authenticate()
+  .then(() => {
+    console.log('Connection has been established successfully.');
+  })
+  .catch((err) => {
+    console.error('Unable to connect to the database:', err);
+  });
 
 fs.readdirSync(__dirname)
   .filter((file) => {
     return (
-      file.indexOf(".") !== 0 && file !== basename && file.slice(-3) === ".js"
+      file.indexOf('.') !== 0 && file !== basename && file.slice(-3) === '.js'
     );
   })
   .forEach((file) => {
     const model = require(path.join(__dirname, file))(
       sequelize,
-      Sequelize.DataTypes
+      Sequelize.DataTypes,
     );
     db[model.name] = model;
   });

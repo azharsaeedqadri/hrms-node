@@ -24,7 +24,7 @@ async function addTeam(req, res) {
 
       const updatedTeam = await Team.findOne({ where: { name } });
 
-      const resp = getResponse(updatedTeam, 400, "Record Already Exists");
+      const resp = getResponse(updatedTeam, 200, "Record added successfully");
       return res.send(resp);
     }
 

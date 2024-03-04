@@ -21,12 +21,12 @@ const {
   AllowanceAndDeductionType,
   MedicalLimit,
   MedicalReimbursement,
-} = require("../models");
-const { HR, TOTAL_LEAVES } = require("../utils/constants");
+} = require('../models');
+const { HR, TOTAL_LEAVES } = require('../utils/constants');
 const {
   getResponse,
   getUserIDByBearerToken,
-} = require("../utils/valueHelpers");
+} = require('../utils/valueHelpers');
 
 async function getAllDropdownData(req, res) {
   try {
@@ -92,18 +92,19 @@ async function getAllDropdownData(req, res) {
       medical_limits,
     };
 
-    const resp = getResponse(dropdownsData, 200, "Lists fetched successfully");
+    const resp = getResponse(dropdownsData, 200, 'Lists fetched successfully');
 
     return res.status(200).send(resp);
   } catch (err) {
     const resp = getResponse(null, 400, err);
+    console.error(err);
     res.send(resp);
   }
 }
 
 async function getDashboardData(req, res) {
   try {
-    const token = req.header("authorization").split("Bearer ");
+    const token = req.header('authorization').split('Bearer ');
 
     const userID = getUserIDByBearerToken(token[1]);
 
@@ -113,24 +114,23 @@ async function getDashboardData(req, res) {
       employeeInformation,
       pendingLeavesPM,
       pendingLeavesHR,
-      pendingMedicalClaims,
-      departmentsCount,
+      reimbursements,
+      departments,
     ] = await Promise.all([
-      EmployeeInformation.findAll({ where: { is_active: true } }),
-      // status 1 is for pending
+      EmployeeInformation.findAll({ where: { is_deleted: false } }),
       EmployeeLeavesRecord.findAll({ where: { status_type_id: 1 } }),
-      // status 2 is for approved
       EmployeeLeavesRecord.findAll({ where: { status_type_id: 2 } }),
-      // status 1 is for pending status
       MedicalReimbursement.findAll({ where: { status: 1 } }),
-      Department.findAll({ where: { is_deleted: false } }),
+      Department.findAll({
+        where: { is_deleted: false },
+      }),
     ]);
 
     const totalEmployees = employeeInformation.length || 0;
     const totalPendingLeavesHR = pendingLeavesHR.length || 0;
     const totalPendingLeavesPM = pendingLeavesPM.length || 0;
-    const totalPendingMedicalClaims = pendingMedicalClaims.length || 0;
-    const totalDepartments = departmentsCount.length || 0;
+    const totalPendingMedicalClaims = reimbursements.length || 0;
+    const totalDepartments = departments.length || 0;
 
     const dashboardData = {
       totalEmployees,
@@ -140,42 +140,11 @@ async function getDashboardData(req, res) {
       totalDepartments,
     };
 
-    const resp = getResponse(dashboardData, 200, "Lists fetched successfully");
+    const resp = getResponse(dashboardData, 200, 'Lists fetched successfully');
 
     return res.status(200).send(resp);
   } catch (err) {
     const resp = getResponse(null, 400, err);
-    console.error(err);
-    res.send(resp);
-  }
-}
-
-async function getDashboardDataByEmpID(req, res) {
-  try {
-    const empID = parseInt(req.params.id);
-
-    const [empData, medicalLimits] = await Promise.all([
-      EmployeeInformation.findByPk(empID, {
-        attributes: ["leave_balance", "ipd_balance", "opd_balance"],
-      }),
-      MedicalLimit.findAll(),
-    ]);
-
-    const responseData = {
-      totalLeaves: TOTAL_LEAVES,
-      remainingLeaves: empData.leave_balance,
-      totalIPDLimit: medicalLimits[0].ipd_limit,
-      remainingIPDBalance: empData.ipd_balance,
-      totalOPDLimit: medicalLimits[0].opd_limit,
-      remainingOPDBalance: empData.opd_balance,
-    };
-
-    const resp = getResponse(responseData, 200, "success");
-
-    res.send(resp);
-  } catch (err) {
-    const resp = getResponse(null, 400, err);
-    console.error(err);
     res.send(resp);
   }
 }
@@ -183,5 +152,4 @@ async function getDashboardDataByEmpID(req, res) {
 module.exports = {
   getAllDropdownData,
   getDashboardData,
-  getDashboardDataByEmpID,
 };

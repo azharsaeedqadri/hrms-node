@@ -9,21 +9,19 @@ async function addDesignation(req, res) {
       const resp = getResponse(
         null,
         401,
-        "Please provide the name of the role."
+        "Please provide the name of the Designation."
       );
       return res.send(resp);
     }
 
-    const alreadyPresent = await Designation.findOne({
-      where: { name },
-    });
+    const alreadyPresent = await Designation.findOne({ where: { name } });
 
     if (alreadyPresent) {
       await Designation.update({ is_deleted: false }, { where: { name } });
 
       const updatedRecord = Designation.findOne({ where: { name } });
 
-      const resp = getResponse(updatedRecord, 400, "Record Already Exists");
+      const resp = getResponse(updatedRecord, 200, "Record added successfully");
       return res.send(resp);
     }
 
@@ -32,13 +30,9 @@ async function addDesignation(req, res) {
       description,
     });
 
-    const addedDesignation = await Designation.findOne({ where: { name } });
+    const addedDesignation = await Department.findOne({ where: { name } });
 
-    const resp = getResponse(
-      addedDesignation,
-      200,
-      "Record added successfully"
-    );
+    const resp = getResponse(addedDesignation, 200, "Record added successfully");
 
     res.send(resp);
   } catch (err) {
@@ -81,11 +75,7 @@ async function getDesignations(req, res) {
       return res.send(resp);
     }
 
-    const resp = getResponse(
-      designations,
-      200,
-      "Designations fetched successfully"
-    );
+    const resp = getResponse(designations, 200, "Designations fetched successfully");
 
     res.send(resp);
   } catch (err) {
@@ -108,11 +98,7 @@ async function getDesignationByID(req, res) {
       return res.send(resp);
     }
 
-    const resp = getResponse(
-      designation,
-      200,
-      "Designation fetched successfully"
-    );
+    const resp = getResponse(designation, 200, "Designations fetched successfully");
 
     res.send(resp);
   } catch (err) {

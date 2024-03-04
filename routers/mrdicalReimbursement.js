@@ -8,7 +8,6 @@ const {
   addMedicalLimits,
   getMedicalLimits,
   updateMedicalLimits,
-  getMedicalClaimsHistory,
 } = require("../controllers/medicalreimbursement");
 
 const router = express.Router();
@@ -28,7 +27,5 @@ router.post("/limits/add", addMedicalLimits);
 router.get("/limits/get", getMedicalLimits);
 
 router.put("/limits/update/:id", updateMedicalLimits);
-
-router.post("/history", getMedicalClaimsHistory);
 
 module.exports = router;

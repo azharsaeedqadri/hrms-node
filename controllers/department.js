@@ -9,7 +9,7 @@ async function addDepartment(req, res) {
       const resp = getResponse(
         null,
         401,
-        "Please provide the name of the department."
+        "Please provide the name of the role."
       );
       return res.send(resp);
     }
@@ -21,7 +21,7 @@ async function addDepartment(req, res) {
 
       const updatedRecord = Department.findOne({ where: { name } });
 
-      const resp = getResponse(updatedRecord, 400, "Record Already Exists");
+      const resp = getResponse(updatedRecord, 200, "Record added successfully");
       return res.send(resp);
     }
 

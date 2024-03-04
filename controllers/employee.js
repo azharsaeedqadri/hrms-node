@@ -4,35 +4,26 @@ const {
   EmployeeInformationAudit,
   HrUser,
   EmployeeAllowance,
-  Allowance,
   MedicalLimit,
-  EmployeeMonthlyPayroll,
-  TaxSlab,
-  MedicalReimbursement,
-  StatusType,
-} = require("../models");
-const db = require("../models");
-const { QueryTypes, Op } = require("sequelize");
-const Sequelize = require("sequelize");
+} = require('../models');
+const db = require('../models');
+const { QueryTypes, Op } = require('sequelize');
+const Sequelize = require('sequelize');
 const {
   GET_ALL_EMPLOYEES_QUERY,
   GET_EMPLOYEE_BY_ID,
   FINALIZED_LEAVE_RECORDS_BY_EMPLOYEE_ID_QUERY,
   GET_CREATED_EMPLOYEE_ALLOWANCES,
-  EMPLOYEE_ACTIVITY_LOGS_QUERY,
-  EMPLOYEE_ACTIVITY_LOGS_MOBILE_QUERY,
-} = require("../utils/constants");
+} = require('../utils/constants');
 const {
   getResponse,
   getUserIDByBearerToken,
-  calculateAnnualTax,
-} = require("../utils/valueHelpers");
+} = require('../utils/valueHelpers');
 
 async function addNewEmployee(req, res) {
   try {
     const {
       salutation_id,
-      employee_code,
       employee_type_id,
       first_name,
       middle_name,
@@ -88,16 +79,7 @@ async function addNewEmployee(req, res) {
     });
 
     if (isAlreadyPresent) {
-      const resp = getResponse({}, 400, "Employee already exist");
-      return res.send(resp);
-    }
-
-    if (office_email === isAlreadyPresent?.office_email) {
-      const resp = getResponse(
-        null,
-        400,
-        "Employee with this Email already exists"
-      );
+      const resp = getResponse({}, 400, 'Employee already exist');
       return res.send(resp);
     }
 
@@ -112,7 +94,6 @@ async function addNewEmployee(req, res) {
 
     await EmployeeInformation.create({
       salutation_id,
-      employee_code,
       employee_type_id,
       first_name,
       middle_name,
@@ -138,7 +119,7 @@ async function addNewEmployee(req, res) {
       salary_type_id,
       current_salary,
       gross_salary,
-      hourly_rate: hourlyRate || null,
+      hourly_rate: hourlyRate,
       company_id,
       basic_salary,
       leave_balance,
@@ -172,10 +153,23 @@ async function addNewEmployee(req, res) {
       include: EmployeeAllowance,
     });
 
-    if (!allowances.length) {
-      const resp = getResponse(addedUser, 201, "Employee added successfully");
-      return res.send(resp);
+    const employeeID = addedUser.employee_id;
+
+    /*
+     NOTE:  As per current requirement of employee code format generating 'ZES-0000' format employee code. 
+     Later we have to update this code on new requirements.
+    */
+    let zeroPrefix = '';
+    for (let i = 0; i < parseInt(4 - employeeID.length); i++) {
+      zeroPrefix += '0';
     }
+
+    const employeeCode = 'ZES-'.concat(zeroPrefix).concat(employeeID);
+
+    await EmployeeInformation.update(
+      { employee_code: employeeCode },
+      { where: { employee_id: employeeID } }
+    );
 
     const employeeAllowances = [];
 
@@ -204,7 +198,7 @@ async function addNewEmployee(req, res) {
       allowances: createdEmployeeAllowances,
     };
 
-    const resp = getResponse(responseData, 201, "Employee Added Successfully.");
+    const resp = getResponse(responseData, 201, 'Employee Added Successfully.');
 
     res.status(201).send(resp);
   } catch (err) {
@@ -221,27 +215,11 @@ async function getAllEmployees(req, res) {
     });
 
     if (!employeesList.length) {
-      const resp = getResponse(null, 404, "No Employees Found");
+      const resp = getResponse(null, 404, 'No Employees Found');
       return res.status(404).send(resp);
     }
 
-    var updatedEmployeesList = await Promise.all(
-      employeesList.map(async (emp) => {
-        const createdEmployeeAllowances = await db.sequelize.query(
-          GET_CREATED_EMPLOYEE_ALLOWANCES,
-          {
-            type: QueryTypes.SELECT,
-            replacements: {
-              employee_id: emp.employee_id,
-            },
-          }
-        );
-
-        return { ...emp, allowances: createdEmployeeAllowances };
-      })
-    );
-
-    const resp = getResponse(updatedEmployeesList, 200, "Success");
+    const resp = getResponse(employeesList, 200, 'Success');
 
     res.status(200).send(resp);
   } catch (err) {
@@ -262,7 +240,7 @@ async function getEmployeeByID(req, res) {
     });
 
     if (!employee) {
-      const resp = getResponse(null, 404, "No Employee Found");
+      const resp = getResponse(null, 404, 'No Employee Found');
       return res.status(404).send(resp);
     }
 
@@ -279,39 +257,19 @@ async function getEmployeeByID(req, res) {
     const employeeStatusLogs = await EmployeeInformationAudit.findAll({
       where: {
         employee_id: employeeID,
-        action_performed: `Employee "Status" Updated`,
+        action_performed: 'employee status updated',
       },
-    });
-
-    const employeeActivityLogs = await db.sequelize.query(
-      EMPLOYEE_ACTIVITY_LOGS_QUERY,
-      {
-        type: QueryTypes.SELECT,
-        replacements: { employeeID },
-      }
-    );
-
-    const reimbursements = await MedicalReimbursement.findAll({
-      where: {
-        // statu 2 is for approved and 4 is for rejected
-        status: { [Op.or]: [2, 4] },
-      },
-      include: [{ model: StatusType }, { model: EmployeeInformation }],
     });
 
     const statusLogsData = await Promise.all(
-      employeeStatusLogs.map(async (emp) => {
+      employeeStatusLogs.map(async emp => {
         const user = await HrUser.findByPk(emp.updated_by);
 
         const transformedData = {
           updated_date: emp.updated_date,
           updated_by: `${user.first_name} ${user.last_name}`,
-          role: user.role === 2 ? "HR Manager" : "Project Manager",
+          role: user.role === 2 ? 'HR Manager' : 'Project Manager',
           active_status: emp.is_active,
-          resignation_date: emp.resignation_date,
-          resignation_reason: emp.resignation_reason,
-          rejoining_date: emp.rejoining_date,
-          rejoining_reason: emp.rejoining_reason,
         };
 
         return transformedData;
@@ -328,92 +286,18 @@ async function getEmployeeByID(req, res) {
       }
     );
 
-    // Payroll History
-
-    let updatedPayrollHistory = [];
-    const filterOptions = {
-      employee_id: { [Op.eq]: employeeID },
-    };
-
-    const employeePayrollHistory = await EmployeeMonthlyPayroll.findAll({
-      where: filterOptions,
-    });
-
-    const taxSlabs = await TaxSlab.findAll();
-
-    var grossSalaryAllowances = await EmployeeAllowance.findAll({
-      where: {
-        employee_id: { [Op.eq]: employee[0].employee_id },
-      },
-      include: [
-        {
-          model: Allowance,
-          where: { is_part_of_gross_salary: { [Op.eq]: true } },
-        },
-      ],
-    });
-
-    var nonTaxableGsAllowances = grossSalaryAllowances.reduce(
-      (accumulator, current) => {
-        if (!accumulator["sum"]) {
-          accumulator["sum"] = { value: 0 };
-        }
-
-        if (current.Allowance.is_taxable === false)
-          accumulator["sum"].value +=
-            (current.percentage * employee[0].gross_salary) / 100 || 0;
-        return accumulator;
-      },
-      {}
-    );
-
-    var nonTaxableAmount = nonTaxableGsAllowances?.sum?.value || 0;
-    var annualGrossSalary = (employee[0].gross_salary - nonTaxableAmount) * 12;
-
-    var taxSlab = taxSlabs.filter((obj) => {
-      var result =
-        annualGrossSalary >= obj.dataValues.minimum_income &&
-        annualGrossSalary <= obj.dataValues.maximum_income;
-      return result;
-    })[0];
-
-    var annualTaxableSalary = calculateAnnualTax(taxSlab, annualGrossSalary);
-    var monthlyTaxableSalary = annualTaxableSalary / 12;
-
-    const date = new Date(`July 1, ${new Date().getFullYear()}`);
-    const endDate = new Date(`June 30, ${new Date().getFullYear() + 1}`);
-    var remainingMonths = 0;
-    while (date <= endDate) {
-      if (date.getMonth() === new Date().getMonth()) {
-        remainingMonths =
-          endDate.getMonth() -
-          date.getMonth() +
-          12 * (endDate.getFullYear() - date.getFullYear());
-        break;
-      }
-      date.setMonth(date.getMonth() + 1);
-    }
-
     const respData = {
       ...employee[0],
       allowances: createdEmployeeAllowances,
       finalizedLeaves: employeeFinalizedLeaveRequests || {},
-      medicalReimbursements: reimbursements || [],
       statusLogs: statusLogsData || {},
-      activityLogs: employeeActivityLogs,
-      payrollHistory: employeePayrollHistory || [],
-      tax: {
-        annualTax: Math.round(annualTaxableSalary),
-        monthlyTax: Math.round(monthlyTaxableSalary),
-        remainingFiscalYearMonths: remainingMonths
-      },
     };
 
-    const resp = getResponse(respData, 200, "Success");
+    const resp = getResponse(respData, 200, 'Success');
 
     res.send(resp);
   } catch (err) {
-    const resp = getResponse(null, 400, "Something went wrong");
+    const resp = getResponse(null, 400, err);
     res.send(resp);
   }
 }
@@ -423,7 +307,7 @@ async function editEmployeeInformation(req, res) {
     const employeeID = parseInt(req.params.id);
     const bodyValues = req.body;
     const { allowances, gross_salary } = bodyValues;
-    const token = req.header("authorization").split("Bearer ");
+    const token = req.header('authorization').split('Bearer ');
 
     const updatedBy = getUserIDByBearerToken(token[1]);
 
@@ -435,7 +319,7 @@ async function editEmployeeInformation(req, res) {
     const values = { ...bodyValues, updatedBy, hourly_rate: hourlyRate };
 
     if (Object.keys(values).length === 0 && values.constructor === Object) {
-      const resp = getResponse({}, 401, "No values to update");
+      const resp = getResponse({}, 401, 'No values to update');
       return res.send(resp);
     }
 
@@ -447,7 +331,7 @@ async function editEmployeeInformation(req, res) {
     });
 
     if (isAlreadyPresent) {
-      const resp = getResponse({}, 400, "Employee already exist");
+      const resp = getResponse({}, 400, 'Employee already exist');
       return res.send(resp);
     }
 
@@ -455,24 +339,9 @@ async function editEmployeeInformation(req, res) {
       where: {
         employee_id: employeeID,
       },
-    });
+    });    
 
-    console.log("=====================================");
-    console.log("Deleting existing employee allowances");
-    console.log("=====================================");
-
-    const allowanceIds = allowances.map((obj) => obj.allowance_id);
-
-    await EmployeeAllowance.destroy({
-      where: {
-        employee_id: { [Op.eq]: employeeID },
-        allowance_id: { [Op.or]: allowanceIds },
-      },
-    });
-
-    console.log("=====================================");
-    console.log("Deleted existing employee allowances");
-    console.log("=====================================");
+    await EmployeeAllowance.destroy({ where: { employee_id: employeeID } }); 
 
     const employeeAllowances = [];
 
@@ -482,17 +351,9 @@ async function editEmployeeInformation(req, res) {
         allowance_id: allowance.allowance_id,
         percentage: allowance.percentage,
       });
-    }
+    }    
 
-    console.log("=====================================");
-    console.log("Creating new employee allowances in edit endpoint");
-    console.log("=====================================");
-
-    await EmployeeAllowance.bulkCreate(employeeAllowances);
-
-    console.log("=====================================");
-    console.log("Created new employee allowances in edit endpoint");
-    console.log("=====================================");
+    await EmployeeAllowance.bulkCreate(employeeAllowances);   
 
     const createdEmployeeAllowances = await db.sequelize.query(
       GET_CREATED_EMPLOYEE_ALLOWANCES,
@@ -516,11 +377,11 @@ async function editEmployeeInformation(req, res) {
       allowances: createdEmployeeAllowances,
     };
 
-    const resp = getResponse(responseData, 200, "user updated successfully");
+    const resp = getResponse(responseData, 200, 'user updated successfully');
 
     res.send(resp);
   } catch (err) {
-    const resp = getResponse(null, 400, "Something went wrong");
+    const resp = getResponse(null, 400, 'Something went wrong');
     console.error(err);
     res.send(resp);
   }
@@ -528,16 +389,9 @@ async function editEmployeeInformation(req, res) {
 
 async function updateEmployeeStatus(req, res) {
   try {
-    const {
-      employee_id,
-      is_active,
-      rejoining_date,
-      resignation_date,
-      rejoining_reason,
-      resignation_reason,
-    } = req.body;
+    const { employee_id, is_active, rejoining_date } = req.body;
 
-    const token = req.header("authorization").split("Bearer ");
+    const token = req.header('authorization').split('Bearer ');
 
     const updatedBy = getUserIDByBearerToken(token[1]);
 
@@ -547,22 +401,14 @@ async function updateEmployeeStatus(req, res) {
     });
 
     if (!employee) {
-      const resp = getResponse({}, 400, "Employee not found");
+      const resp = getResponse({}, 400, 'Employee not found');
       return res.status(200).send(resp);
     }
 
     // Set rejoining date only if we change status from Inactive -> Active
-    let data = { is_active, resignation_reason, rejoining_reason, updatedBy };
-
+    let data = { is_active, updatedBy };
     if (is_active === true) {
-      data["rejoining_date"] = rejoining_date;
-      data["rejoining_reason"] = rejoining_reason;
-    }
-
-    // Set resignation date only if we change status from Active -> Inactive
-    if (is_active === false) {
-      data["resignation_date"] = resignation_date;
-      data["resignation_reason"] = resignation_reason;
+      data['rejoining_date'] = rejoining_date;
     }
 
     // Update record
@@ -573,20 +419,20 @@ async function updateEmployeeStatus(req, res) {
     });
 
     if (!response) {
-      const resp = getResponse({}, 400, "Error while updating record");
+      const resp = getResponse({}, 400, 'Error while updating record');
       return res.status(200).send(resp);
     }
 
     const resp = getResponse(
       { id: employee_id, is_active },
       200,
-      "Record updated successfully"
+      'Record updated successfully'
     );
 
     return res.status(200).send(resp);
   } catch (err) {
     console.log(err);
-    const resp = getResponse(null, 400, "Something went wrong");
+    const resp = getResponse(null, 400, 'Something went wrong');
     res.send(resp);
   }
 }
@@ -595,13 +441,13 @@ async function employeeListForCalendar(req, res) {
   try {
     const employeesList = await EmployeeLeavesRecord.findAll({
       attributes: [
-        "no_of_days",
-        "id",
-        "status_type_id",
-        [Sequelize.literal("from_date"), "start"],
-        [Sequelize.literal("to_date"), "end"],
-        [Sequelize.literal("EmployeeInformation.first_name"), "title"],
-        [Sequelize.literal("EmployeeInformation.last_name"), "lastname"],
+        'no_of_days',
+        'id',
+        'status_type_id',
+        [Sequelize.literal('from_date'), 'start'],
+        [Sequelize.literal('to_date'), 'end'],
+        [Sequelize.literal('EmployeeInformation.first_name'), 'title'],
+        [Sequelize.literal('EmployeeInformation.last_name'), 'lastname'],
       ],
       include: [
         {
@@ -614,40 +460,14 @@ async function employeeListForCalendar(req, res) {
     });
 
     if (!employeesList) {
-      const resp = getResponse({}, 400, "Error while fetched record");
+      const resp = getResponse({}, 400, 'Error while fetched record');
       return res.status(200).send(resp);
     }
-    const resp = getResponse(employeesList, 200, "Record fetched successfully");
+    const resp = getResponse(employeesList, 200, 'Record fetched successfully');
 
     return res.status(200).send(resp);
   } catch (err) {
-    const resp = getResponse(null, 400, "Something went wrong");
-    res.send(resp);
-  }
-}
-
-async function getEmployeeLogsForMobile(req, res) {
-  try {
-    const employeeID = parseInt(req.params.id);
-
-    const activityLogs = await db.sequelize.query(
-      EMPLOYEE_ACTIVITY_LOGS_MOBILE_QUERY,
-      {
-        type: QueryTypes.SELECT,
-        replacements: { employeeID },
-      }
-    );
-
-    if (!activityLogs.length) {
-      const resp = getResponse(null, 404, "No Logs Found");
-      return res.send(resp);
-    }
-
-    const resp = getResponse(activityLogs, 200, "success");
-    res.send(resp);
-  } catch (err) {
-    const resp = getResponse(null, 400, "Something went wrong");
-    console.error(err);
+    const resp = getResponse(null, 400, 'Something went wrong');
     res.send(resp);
   }
 }
@@ -659,5 +479,4 @@ module.exports = {
   editEmployeeInformation,
   updateEmployeeStatus,
   employeeListForCalendar,
-  getEmployeeLogsForMobile,
 };

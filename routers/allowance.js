@@ -14,7 +14,7 @@ router.post("/addNewAllowance", addNewAllowance);
 router.get("/getAll", getAllAllowances);
 router.get("/:id", getAllowanceByID);
 router.put("/:id", editAllowance);
-router.delete("/:id", deleteAllowance);
+router.put("/delete/:id", deleteAllowance);
 router.get("/permanentAllowances/all", getPermanentAllowances);
 
 module.exports = router;

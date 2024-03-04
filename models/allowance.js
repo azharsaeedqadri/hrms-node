@@ -1,5 +1,5 @@
-"use strict";
-const { Model } = require("sequelize");
+'use strict';
+const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Allowance extends Model {
     /**
@@ -10,10 +10,10 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       models.Allowance.belongsTo(models.AllowanceAndDeductionType, {
-        foreignKey: "allowance_type",
+        foreignKey: 'allowance_type',
       });
       models.AllowanceAndDeductionType.hasMany(models.Allowance, {
-        foreignKey: "allowance_type",
+        foreignKey: 'allowance_type',
       });
     }
   }
@@ -34,12 +34,16 @@ module.exports = (sequelize, DataTypes) => {
       is_fixed: DataTypes.BOOLEAN,
       percentage: DataTypes.FLOAT,
       amount: DataTypes.FLOAT,
-      status: DataTypes.INTEGER,
+      status: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+      },
     },
     {
       sequelize,
-      modelName: "Allowance",
-      tableName: "allowances",
+      modelName: 'Allowance',
+      tableName: 'allowances',
     }
   );
   return Allowance;

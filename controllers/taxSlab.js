@@ -75,43 +75,17 @@ async function editTaxSlab(req, res) {
       return res.send(resp);
     }
 
-    //check if tax slabs ranges are correct and there are no gaps
-    /*
-    const taxSlabs = await TaxSlab.findAll();
-    const updatedTaxSlabsArray = taxSlabs.map(item => {
-      if (item.tax_slab_id === tax_slab_id) {
-        return {
-          ...item.dataValues,
-          tax_slab_name: tax_slab_name,
-          tax_slab_description: tax_slab_description,
-          minimum_income: minimum_income,
-          maximum_income: maximum_income,
-          percentage: percentage,
-          additional_amount: additional_amount
-        }
-      }
-      return item;
-    });
-
-    var message = checkTaxSlabsGaps(updatedTaxSlabsArray);
-
-    if (message) {
-      const resp = getResponse(message, 200, "success");
-      return res.send(resp);
-    }
-    */
-
-    // await TaxSlab.update(
-    //   {
-    //     tax_slab_name,
-    //     tax_slab_description,
-    //     minimum_income,
-    //     maximum_income,
-    //     percentage,
-    //     additional_amount,
-    //   },
-    //   { where: { tax_slab_id } }
-    // );
+    await TaxSlab.update(
+      {
+        tax_slab_name,
+        tax_slab_description,
+        minimum_income,
+        maximum_income,
+        percentage,
+        additional_amount,
+      },
+      { where: { tax_slab_id } }
+    );
 
     const updatedTaxSlab = await TaxSlab.findByPk(tax_slab_id);
 
@@ -128,7 +102,6 @@ async function deleteTaxSlab(req, res) {
   try {
     const tax_slab_id = parseInt(req.params.id);
 
-    //if prev months payroll exists, donot allow to delete tax slabs
     await TaxSlab.destroy({ where: { tax_slab_id } });
 
     const resp = getResponse(null, 200, "success deleting tax slab");
